@@ -1,101 +1,142 @@
-# Evaluating Linux EDR Syscall Visibility (baseline vs io_uring)
+# Linux EDR Telemetry Visibility Experiment  
+**CSC 786 – Computer Science Problems**
 
-## Project Context
-This project evaluates whether a Linux EDR that relies on syscall-level telemetry (Wazuh + auditd) maintains visibility when equivalent activity is performed via an alternative execution pathway (io_uring). The goal is to measure detection coverage and highlight potential telemetry gaps, then provide defensive recommendations.
+## Overview
+This project evaluates how standard Linux, syscall-focused monitoring mechanisms
+(e.g., `auditd` rules for `openat`, `connect`, and `execve`) observe execution
+performed via traditional system calls versus execution delegated through
+`io_uring`.
 
-## Architecture (Lab Setup)
-This work is performed in an isolated lab environment using three VMs:
+The goal is **not to bypass detection**, but to **measure differences in observable
+telemetry** under commonly deployed monitoring configurations. All experiments are
+conducted using benign, functionally equivalent programs.
 
-- **Attacker VM (Ubuntu):** launches the test workloads and automation scripts.
-- **Target VM (RHEL):** runs Wazuh agent and auditd to collect telemetry during each run.
-- **Wazuh Manager VM:** centralizes alerts/logs from the target.
+---
 
-High-level flow:
-1) Workload runs on **Target VM**
-2) **auditd** + **Wazuh agent** collect events
-3) Events/alerts are sent to the **Wazuh Manager**
-4) Logs are collected and processed into **derived CSV metrics** for analysis
+## Repository Structure
 
-## What This Repository Contains
-- `scripts/` — run, collect, and process scripts to reproduce experiments
-- `data/processed/` — derived CSV metrics (tracked in Git)
-- `data/raw/` — optional raw logs (NOT tracked; kept local)
-- `analysis/` — notebook used to analyze CSV metrics
-- `environment/` — setup notes and version pinning
-- `DATA_README.md` — documents data sources, parameters, and output schema
-- `ETHICS.md` — ethical + safety considerations
+```
+.
+├── analysis/
+│   ├── analysis.ipynb        # Data analysis & visualization notebook
+│   └── README.md
+├── data/
+│   ├── processed/            # Processed datasets (tracked)
+│   └── raw/                  # Raw logs (ignored; local only)
+├── environment/
+│   ├── 99-edr-baseline.rules # auditd rules used in the experiment
+│   ├── README.md
+│   └── setup.md
+├── scripts/
+│   └── run_tests.sh          # Automated execution & data collection harness
+├── traditional/              # Traditional syscall-based programs (C)
+├── io_uring/                 # io_uring-based programs (C)
+├── Makefile
+├── requirements.txt
+├── ETHICS.md
+├── RUNS.md
+└── README.md                 # This file
+```
 
-## Dependencies
-Target VM (RHEL):
-- gcc, make (for compiling workloads)
-- auditd
-- Wazuh agent
+---
 
-Manager VM:
-- Wazuh manager (OVA or installed)
+## Experimental Methodology (High-Level)
 
-Analysis machine (Attacker VM or your local machine):
-- Python 3.10+
-- pandas
-- matplotlib
+1. Functionally equivalent programs are compiled:
+   - Traditional syscall implementations
+   - `io_uring`-based implementations
+2. Programs are executed under identical system conditions.
+3. Detection visibility is measured using **existing auditd rules** that monitor:
+   - `openat` (file access)
+   - `connect` (network activity)
+   - `execve` (process execution)
+4. Per-run audit key hit counts are recorded into a structured dataset.
+5. Results are analyzed using descriptive statistics and visualizations.
 
-Install Python dependencies:
+---
+
+## System Requirements
+
+- Rocky Linux / RHEL-compatible system
+- Kernel with `io_uring` support
+- Root privileges (required for `auditd`)
+- Packages:
+  ```bash
+  sudo dnf install -y \
+    gcc make audit \
+    liburing liburing-devel \
+    python3 python3-pip
+  ```
+
+- Python dependencies:
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+---
+
+## Reproducible Workflow
+
+### 1) Build all binaries
 ```bash
-pip install -r requirements.txt
+make clean
+make all
 ```
-## Reproducibility Workflow (Run → Collect → Process → Analyze)
-0) One-time Environment Setup
 
-See environment/setup.md for VM configuration, versions, and log paths.
+---
 
-1) Run baseline workload (traditional syscalls)
+### 2) Load audit rules
 ```bash
-bash scripts/run_baseline.sh
+sudo auditctl -R environment/99-edr-baseline.rules
 ```
-2) Run io_uring workload (alternative execution path)
-```bash
-bash scripts/run_io_uring.sh
-```
-3) Collect logs and artifacts
-```bash
-bash scripts/collect_logs.sh <RUN_ID>
-```
-4) Process logs into derived metrics
-```
-python scripts/process_logs.py --run-id <RUN_ID>
-```
-5) Analyze results
 
-Open and execute:
+Verify:
+```bash
+sudo auditctl -l
+```
 
+---
+
+### 3) Run the experiment
+```bash
+sudo ./scripts/run_tests.sh
+```
+
+Artifacts produced:
+- `data/processed/runs_<timestamp>.csv`
+- `logs/test_run_<timestamp>.log`
+- `data/raw/ENV_<timestamp>.txt`
+
+---
+
+### 4) Analyze results
+```bash
+jupyter notebook
+```
+
+Open:
+```
 analysis/analysis.ipynb
+```
 
-Validation: Confirming io_uring Activity vs Syscall Visibility
+---
 
-Each experiment run produces a ground-truth artifact (e.g., a file written or expected program output) to confirm that the workload executed successfully. Syscall visibility is validated by comparing:
+## Output Artifacts
 
-auditd and Wazuh syscall event coverage for baseline versus io_uring runs, and
+- `results/figures/`
+- `results/means_by_case.csv`
+- `results/detect_rates_by_case.csv`
 
-an optional lightweight kernel tracing sanity check to confirm io_uring activity occurred while traditional syscall visibility is reduced.
+---
 
-## Output Files
+## Ethics & Scope
+This project uses only benign test programs and focuses on measurement and analysis
+of telemetry visibility. No malware or persistence mechanisms are deployed.
 
-Derived outputs generated by the workflow:
+See `ETHICS.md` for details.
 
-data/processed/run_<RUN_ID>_metrics.csv
+---
 
-data/processed/run_<RUN_ID>_metadata.json
-
-Raw logs (optional, local-only):
-
-data/raw/<RUN_ID>/
-
-See DATA_README.md for output schema and data collection details.
-
-## Notes on Variability
-
-Exact metric values may vary across systems due to kernel scheduling and buffering. Reproducibility is defined by consistent workflow execution, identical output schemas, and comparable trends under equivalent configurations.
-
-## License
-
-For academic use only. See ETHICS.md.
+## Author
+Michael Mendoza  
+CSC 786 – Dakota State University
