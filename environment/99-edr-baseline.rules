@@ -1,0 +1,15 @@
+## =========================
+## Baseline EDR Telemetry
+## =========================
+
+# Process execution (baseline syscall visibility)
+-a always,exit -F arch=b64 -S execve -k exec_baseline
+-a always,exit -F arch=b32 -S execve -k exec_baseline
+
+# File execution & access (payload + staging visibility)
+-a always,exit -F arch=b64 -S openat -k file_baseline
+-a always,exit -F arch=b32 -S openat -k file_baseline
+
+# Network connections (outbound behavior)
+-a always,exit -F arch=b64 -S connect -k net_baseline
+-a always,exit -F arch=b32 -S connect -k net_baseline
