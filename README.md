@@ -1,4 +1,4 @@
-# CSC 786 Project — Evaluating Linux EDR Syscall Visibility (baseline vs io_uring)
+# Evaluating Linux EDR Syscall Visibility (baseline vs io_uring)
 
 ## Project Context
 This project evaluates whether a Linux EDR that relies on syscall-level telemetry (Wazuh + auditd) maintains visibility when equivalent activity is performed via an alternative execution pathway (io_uring). The goal is to measure detection coverage and highlight potential telemetry gaps, then provide defensive recommendations.
