@@ -1,1 +1,19 @@
+# Python/Jupyter
+__pycache__/
+.ipynb_checkpoints/
+
+# Local secrets
+.env
+*.env
+
+# Raw logs (local only)
+data/raw/
+
+# Keep processed outputs in Git
+# (Do NOT ignore processed folder)
+# data/processed/*.csv and *.json should be tracked
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
 
