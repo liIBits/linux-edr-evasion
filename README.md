@@ -42,6 +42,15 @@ sudo make experiment N=30
 
 ---
 
+## VM Downloads
+
+| VM | Source | Notes |
+|----|--------|-------|
+| **Rocky Linux 9** | https://rockylinux.org/download | Use DVD ISO for full install |
+| **Wazuh OVA** | https://documentation.wazuh.com/current/deployment-options/virtual-machine/virtual-machine.html | Pre-configured manager + indexer |
+
+---
+
 ## Repository Structure
 
 ```
@@ -89,22 +98,76 @@ linux-edr-evasion/
 
 ### Environment Requirements
 
-**Rocky Linux Target:**
-- Rocky Linux 9.x / RHEL-compatible
-- Kernel with io_uring support (5.1+, ideally 5.6+)
-- auditd enabled
-- Wazuh agent installed (optional)
-- Root access
+#### Rocky Linux Target VM
 
-**Wazuh Manager (optional):**
-- Wazuh 4.x OVA
-- FIPS mode enabled
-- SSH key authentication configured
+| Component | Details |
+|-----------|---------|
+| OS | Rocky Linux 9.x |
+| Download | https://rockylinux.org/download |
+| ISO Used | Rocky-9.5-x86_64-dvd.iso (or latest 9.x) |
+| Kernel | 5.14+ (supports io_uring) |
+| Requirements | auditd enabled, root access |
+
+#### Wazuh Manager VM
+
+| Component | Details |
+|-----------|---------|
+| OS | Wazuh preconfigured OVA |
+| Download | https://documentation.wazuh.com/current/deployment-options/virtual-machine/virtual-machine.html |
+| Version Used | Wazuh 4.14.1 |
+| Default Credentials | User: `wazuh-user` / Password: `wazuh` |
+| Configuration | FIPS mode enabled, SSH key auth |
+
+#### Hypervisor
+
+Any hypervisor that supports OVA import:
+- VMware Workstation / Fusion
+- VirtualBox
+- Proxmox (convert OVA to qcow2)
+
+#### Network Setup
+
+Both VMs should be on the same network (NAT or bridged) so the Rocky target can communicate with the Wazuh manager.
 
 ### Step 1: Install Dependencies
 
+**On Rocky Linux target:**
+
 ```bash
-sudo dnf install -y gcc make audit liburing liburing-devel python3 python3-pip
+# Build tools and libraries
+sudo dnf install -y gcc make audit liburing liburing-devel
+
+# Python for analysis (optional, can run on separate machine)
+sudo dnf install -y python3 python3-pip
+```
+
+**Install Wazuh Agent on Rocky Linux target:**
+
+```bash
+# Import Wazuh GPG key
+sudo rpm --import https://packages.wazuh.com/key/GPG-KEY-WAZUH
+
+# Add Wazuh repository
+sudo cat > /etc/yum.repos.d/wazuh.repo << 'EOF'
+[wazuh]
+name=Wazuh repository
+gpgcheck=1
+gpgkey=https://packages.wazuh.com/key/GPG-KEY-WAZUH
+enabled=1
+baseurl=https://packages.wazuh.com/4.x/yum/
+protect=1
+EOF
+
+# Install agent (replace WAZUH_MANAGER with your manager IP)
+sudo WAZUH_MANAGER="10.0.0.7" dnf install -y wazuh-agent
+
+# Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable wazuh-agent
+sudo systemctl start wazuh-agent
+
+# Verify
+sudo systemctl status wazuh-agent
 ```
 
 ### Step 2: Build Binaries
@@ -162,14 +225,16 @@ sudo ./scripts/run_tests.sh 30
 ### Step 6: Analyze Results
 
 ```bash
-# View CSV
-cat data/processed/runs_*.csv | column -t -s,
+# View CSV directly
+column -t -s, data/processed/runs_*.csv
 
-# Jupyter analysis
+# Or use Python/Jupyter for full analysis
 cd analysis
 pip install -r ../requirements.txt
 jupyter notebook analysis.ipynb
 ```
+
+The `requirements.txt` includes pandas, matplotlib, seaborn, and scipy for data analysis and visualization.
 
 ---
 
