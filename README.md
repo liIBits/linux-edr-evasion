@@ -32,15 +32,18 @@ Following this README end-to-end should allow reproduction of the experiment.
 
 ### Rocky Linux Target
 - Rocky Linux / RHEL-compatible
+- OS: Rocky-9.7-x86_64
 - auditd enabled
 - Wazuh agent installed
 - Root access available
 
 ### Wazuh Manager
-- Default Wazuh installation
+- OS: Wazuh-4.14.1
+- Preconfigured Wazuh VM from their website
 - FIPS mode enabled
-- IP: 10.0.0.7
+- IP: [internal ip]
 - User: wazuh-user
+- Password: wazuh
 
 ---
 
@@ -48,7 +51,7 @@ Following this README end-to-end should allow reproduction of the experiment.
 
 Log in:
 ```bash
-ssh wazuh-user@10.0.0.7
+ssh wazuh-user@[wazuh-server ip]
 ```
 
 Verify sudo:
@@ -82,12 +85,12 @@ sudo ssh-keygen -t rsa -b 4096 -f /root/.ssh/id_rsa_fips
 
 Copy key to Wazuh manager:
 ```bash
-sudo ssh-copy-id -i /root/.ssh/id_rsa_fips.pub wazuh-user@10.0.0.7
+sudo ssh-copy-id -i /root/.ssh/id_rsa_fips.pub wazuh-user@[wazuh-server ip]
 ```
 
 Verify key-only access:
 ```bash
-sudo ssh -i /root/.ssh/id_rsa_fips -o PasswordAuthentication=no wazuh-user@10.0.0.7
+sudo ssh -i /root/.ssh/id_rsa_fips -o PasswordAuthentication=no wazuh-user@[wazuh-server ip]
 ```
 
 ---
@@ -96,7 +99,7 @@ sudo ssh -i /root/.ssh/id_rsa_fips -o PasswordAuthentication=no wazuh-user@10.0.
 
 From Rocky:
 ```bash
-scp scripts/wazuh_count_alerts_remote.sh wazuh-user@10.0.0.7:/home/wazuh-user/
+scp scripts/wazuh_count_alerts_remote.sh wazuh-user@[wazuh-server ip]:/home/wazuh-user/
 ```
 
 On Wazuh manager:
