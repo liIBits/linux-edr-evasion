@@ -50,7 +50,7 @@ The notebook automatically loads the most recent CSV from:
 1. **Setup** — imports, directory creation
 2. **Load Data** — finds and loads CSV
 3. **Preprocessing** — adds derived columns (method, operation, detection flags)
-4. **Detection Rate Analysis** — primary A3 metric
+4. **Detection Rate Analysis** — primary metric
 5. **False Negative Rate** — secondary metric
 6. **Time-to-Detection** — latency metric
 7. **Syscall Bypass Validation** — statistical proof that io_uring evades detection
