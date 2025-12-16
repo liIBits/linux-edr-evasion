@@ -1,93 +1,46 @@
-# Scripts – Experiment Automation
+# scripts
 
-This directory contains the automation harness used to execute all experimental
-tests in a **controlled, repeatable manner**.
+Automation scripts for running experiments and collecting data.
 
-The scripts here are responsible for **data collection only**. They do not perform
-analysis or modify detection rules beyond loading pre-defined configurations.
+## Files
 
----
-
-## Contents
-
-### `run_tests.sh`
-Primary experiment driver script.
-
-This script:
-- Executes traditional and `io_uring`-based binaries in a fixed order
-- Repeats executions for a configurable number of iterations
-- Records precise start/end timestamps for each run
-- Queries existing `auditd` rules to measure syscall-level visibility
-- Produces **structured, processed datasets** for downstream analysis
-
----
+| Script | Purpose |
+|--------|---------|
+| `run_tests.sh` | Main test harness — runs all test cases and collects audit/Wazuh data |
+| `wazuh_count_alerts_remote.sh` | Helper script executed on Wazuh manager via SSH |
 
 ## Usage
 
-Run the script as root (required for `auditd` access):
-
 ```bash
-sudo ./run_tests.sh
+# Run from repo root (requires root for auditd access)
+sudo ./scripts/run_tests.sh [iterations]
+
+# Example: 30 iterations
+sudo ./scripts/run_tests.sh 30
 ```
 
-By default, the script runs **10 iterations** of each test case.
+## What `run_tests.sh` Does
 
-To override the iteration count:
+1. **Pre-flight checks** — verifies audit rules loaded, binaries exist, Wazuh connectivity
+2. **Reloads audit rules** — ensures clean baseline from `environment/99-edr-baseline.rules`
+3. **Runs test cases** — executes each binary and queries auditd afterward
+4. **Outputs CSV** — writes results to `data/processed/runs_<timestamp>.csv`
+
+## Environment Variables
+
+Override defaults by exporting before running:
 
 ```bash
-sudo ./run_tests.sh 20
+export WAZUH_MANAGER_HOST="10.0.0.7"
+export WAZUH_MANAGER_USER="wazuh-user"
+export WAZUH_AGENT_NAME="rocky-target-01"
+export SSH_KEY="/root/.ssh/id_rsa_fips"
 ```
 
----
+## Output Files
 
-## Output Artifacts
-
-Running `run_tests.sh` produces the following artifacts:
-
-### Processed Data (Tracked)
-- `data/processed/runs_<timestamp>.csv`
-
-This CSV contains one row per execution with the following fields:
-- `ts_start` – epoch timestamp at start of execution
-- `ts_end` – epoch timestamp at end of execution
-- `iteration` – iteration number
-- `case` – test case identifier
-- `file_hits` – audit hits for file-related syscalls
-- `net_hits` – audit hits for network-related syscalls
-- `exec_hits` – audit hits for process execution syscalls
-
-This file is intended to be consumed directly by the analysis notebook.
-
----
-
-### Raw / Diagnostic Artifacts (Local Only)
-- `logs/test_run_<timestamp>.log` – execution log
-- `data/raw/ENV_<timestamp>.txt` – environment metadata snapshot
-
-These artifacts are intentionally excluded from version control.
-
----
-
-## Assumptions
-
-- Audit rules have already been loaded (see `environment/99-edr-baseline.rules`)
-- Binaries have been built using `make all`
-- The system is otherwise idle to minimize unrelated audit noise
-
----
-
-## Design Notes
-
-- The script uses **existing syscall-focused audit rules** only.
-- No custom rules are added to detect `io_uring` directly.
-- Differences in audit hit counts reflect **observable telemetry**, not kernel behavior.
-
-This design aligns with the experimental goals described in Assignment 3 and
-supports reproducible evaluation for Assignments 4 and 5.
-
----
-
-## Safety & Ethics
-
-The script executes only benign test programs and performs read-only inspection
-of audit logs. No persistence, exploitation, or adversarial activity is performed.
+| File | Location |
+|------|----------|
+| Results CSV | `data/processed/runs_<timestamp>.csv` |
+| Run log | `logs/test_run_<timestamp>.log` |
+| Environment snapshot | `data/raw/ENV_<timestamp>.txt` |
