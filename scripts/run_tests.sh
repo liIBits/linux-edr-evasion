@@ -1,153 +1,307 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-# run_tests.sh - Automated test runner for EDR evasion experiments
+# run_tests.sh - Automated EDR Evasion Test Harness
 #
-# This script runs both traditional and io_uring variants of each test
-# and logs timestamps for correlation with auditd/Wazuh logs.
+# Runs traditional syscall binaries and io_uring equivalents,
+# collecting auditd hits and Wazuh alerts for each run.
 #
-# Usage: ./run_tests.sh [iterations]
-# Default: 30 iterations (as per your experimental design)
+# Usage: sudo ./scripts/run_tests.sh [iterations]
+# Default: 10 iterations
+#
 
-set -e
+set -uo pipefail  # No -e; we handle errors manually
 
+# =========================
+# Configuration
+# =========================
 ITERATIONS=${1:-10}
-BIN_DIR="./bin"
-LOG_DIR="./logs"
+
+# Resolve paths relative to repo root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+BIN_DIR="${REPO_ROOT}/bin"
+LOG_DIR="${REPO_ROOT}/logs"
+DATA_DIR="${REPO_ROOT}/data"
+RAW_DIR="${DATA_DIR}/raw"
+PROCESSED_DIR="${DATA_DIR}/processed"
+
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="${LOG_DIR}/test_run_${TIMESTAMP}.log"
-DATA_DIR="./data"
-PROCESSED_DIR="${DATA_DIR}/processed"
-RAW_DIR="${DATA_DIR}/raw"
 CSV_FILE="${PROCESSED_DIR}/runs_${TIMESTAMP}.csv"
 ENV_FILE="${RAW_DIR}/ENV_${TIMESTAMP}.txt"
 
-mkdir -p "$PROCESSED_DIR" "$RAW_DIR"
+# --- Wazuh manager config (override via environment) ---
+WAZUH_MANAGER_HOST="${WAZUH_MANAGER_HOST:-10.0.0.7}"
+WAZUH_MANAGER_USER="${WAZUH_MANAGER_USER:-wazuh-user}"
+WAZUH_AGENT_NAME="${WAZUH_AGENT_NAME:-rocky-target-01}"
+SSH_KEY="${SSH_KEY:-/root/.ssh/id_rsa_fips}"
 
-mkdir -p "$LOG_DIR"
+WAZUH_REMOTE_SCRIPT="${SCRIPT_DIR}/wazuh_count_alerts_remote.sh"
 
+# Create output directories
+mkdir -p "$LOG_DIR" "$RAW_DIR" "$PROCESSED_DIR"
+
+# =========================
+# Logging
+# =========================
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S.%3N')] $*" | tee -a "$LOG_FILE"
+    local now
+    now=$(date "+%Y-%m-%d %H:%M:%S.%3N")
+    echo "[${now}] $*" | tee -a "$LOG_FILE"
 }
 
-run_test() {
-    local name=$1
-    local binary=$2
-    local args=${3:-}
+# =========================
+# Helpers
+# =========================
+audit_hits_between() {
+    local key="$1"
+    local start_h="$2"
+    local end_h="$3"
+    local count
 
-    local ts_start_epoch ts_start_human ts_end_epoch rc
-    ts_start_epoch=$(date +%s)
-    ts_start_human=$(date -d "@$ts_start_epoch" "+%Y-%m-%d %H:%M:%S")
+    # ausearch returns exit code 1 when no records found - that's expected
+    count=$(sudo ausearch -k "$key" -ts "$start_h" -te "$end_h" 2>/dev/null | wc -l) || true
 
-    log "START: $name"
-    if [ -x "$binary" ]; then
-        set +e
-        "$binary" $args 2>&1 | tee -a "$LOG_FILE"
-        rc=$?
-        set -e
-        log "END: $name (exit=$rc)"
+    # Ensure we return a valid number
+    if [[ -z "$count" || ! "$count" =~ ^[0-9]+$ ]]; then
+        echo "0"
     else
-        rc=127
-        log "SKIP: $name - binary not found: $binary"
+        echo "$count"
+    fi
+}
+
+wazuh_alerts_between() {
+    local start_epoch="$1"
+    local end_epoch="$2"
+    local count
+
+    if [[ ! -f "$WAZUH_REMOTE_SCRIPT" ]]; then
+        # Silent skip if script doesn't exist - user may not have Wazuh configured
+        echo "0"
+        return 0
     fi
 
+    if [[ ! -f "$SSH_KEY" ]]; then
+        # No SSH key configured
+        echo "0"
+        return 0
+    fi
+
+    count=$(ssh -i "$SSH_KEY" \
+        -o BatchMode=yes \
+        -o ConnectTimeout=5 \
+        -o StrictHostKeyChecking=no \
+        -o PreferredAuthentications=publickey \
+        -o PasswordAuthentication=no \
+        "${WAZUH_MANAGER_USER}@${WAZUH_MANAGER_HOST}" \
+        "bash -s -- ${start_epoch} ${end_epoch} ${WAZUH_AGENT_NAME}" < \
+        "$WAZUH_REMOTE_SCRIPT" 2>/dev/null) || true
+
+    # Ensure we return a valid number
+    if [[ -z "$count" || ! "$count" =~ ^[0-9]+$ ]]; then
+        echo "0"
+    else
+        echo "$count"
+    fi
+}
+
+run_case() {
+    local case_name="$1"
+    local binary="$2"
+    local iteration="$3"
+
+    local ts_start_epoch ts_end_epoch ts_start_h ts_end_h rc
+
+    ts_start_epoch=$(date +%s)
+    ts_start_h=$(date -d "@$ts_start_epoch" "+%Y-%m-%d %H:%M:%S")
+
+    log "START: $case_name"
+
+    if [[ -x "$binary" ]]; then
+        # Run binary and capture exit code without failing script
+        "$binary" 2>&1 | tee -a "$LOG_FILE" || true
+        rc=${PIPESTATUS[0]}
+    else
+        rc=127
+        log "SKIP: missing binary $binary"
+    fi
+
+    log "END: $case_name (exit=$rc)"
+
+    # Small delay to ensure audit logs are flushed
+    sleep 0.2
+
     ts_end_epoch=$(date +%s)
+    ts_end_h=$(date -d "@$ts_end_epoch" "+%Y-%m-%d %H:%M:%S")
 
-    # Count hits for your *existing* syscall-based rules
-    local file_hits net_hits exec_hits
-    file_hits=$(audit_hits_since "file_baseline" "$ts_start_human")
-    net_hits=$(audit_hits_since "net_baseline" "$ts_start_human")
-    exec_hits=$(audit_hits_since "exec_baseline" "$ts_start_human")
+    local file_hits net_hits exec_hits wazuh_alerts
+    file_hits=$(audit_hits_between "file_baseline" "$ts_start_h" "$ts_end_h")
+    net_hits=$(audit_hits_between "net_baseline" "$ts_start_h" "$ts_end_h")
+    exec_hits=$(audit_hits_between "exec_baseline" "$ts_start_h" "$ts_end_h")
+    wazuh_alerts=$(wazuh_alerts_between "$ts_start_epoch" "$ts_end_epoch")
 
-    echo "${ts_start_epoch},${ts_end_epoch},${i},${name},${file_hits},${net_hits},${exec_hits}" >> "$CSV_FILE"
+    # Debug output
+    log "  -> file=$file_hits net=$net_hits exec=$exec_hits wazuh=$wazuh_alerts"
 
-    echo "" >> "$LOG_FILE"
+    # Write to CSV
+    echo "${ts_start_epoch},${ts_end_epoch},${iteration},${case_name},${file_hits},${net_hits},${exec_hits},${wazuh_alerts}" >> "$CSV_FILE"
 }
 
-audit_hits_since() {
-    local key="$1"
-    local start_ts="$2"
-    sudo ausearch -k "$key" -ts "$start_ts" 2>/dev/null | wc -l
-}
-
-
-echo "========================================"
-echo "EDR Evasion PoC Test Runner"
-echo "========================================"
-echo "Iterations: $ITERATIONS"
-echo "Log file: $LOG_FILE"
-echo "Start time: $(date)"
-echo "========================================"
+# =========================
+# Pre-flight checks
+# =========================
+echo ""
+echo "=============================================="
+echo "  Linux EDR Evasion - Test Harness"
+echo "=============================================="
 echo ""
 
-echo "ts_start,ts_end,iteration,case,file_hits,net_hits,exec_hits" > "$CSV_FILE"
+log "=== CONFIGURATION ==="
+log "Repo root:   $REPO_ROOT"
+log "Binary dir:  $BIN_DIR"
+log "Iterations:  $ITERATIONS"
+log "CSV output:  $CSV_FILE"
+log "Log file:    $LOG_FILE"
 
-log "=== TEST RUN STARTED ==="
-log "Iterations: $ITERATIONS"
-log "Kernel: $(uname -r)"
-log "Host: $(hostname)"
+# Check if running as root
+if [[ $EUID -ne 0 ]]; then
+    log "WARNING: Not running as root - auditd queries may fail"
+fi
 
+# Check binaries exist
+missing=0
+for bin in file_io_trad file_io_uring read_file_trad openat_uring net_connect_trad net_connect_uring exec_cmd_trad; do
+    if [[ ! -x "${BIN_DIR}/${bin}" ]]; then
+        log "WARN: Binary missing: ${BIN_DIR}/${bin}"
+        ((missing++)) || true
+    fi
+done
+
+if [[ $missing -gt 0 ]]; then
+    log "WARN: $missing binaries missing. Run 'make all' first."
+    echo ""
+    read -p "Continue anyway? [y/N] " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
+# Check Wazuh connectivity (optional)
+if [[ -f "$SSH_KEY" ]] && [[ -f "$WAZUH_REMOTE_SCRIPT" ]]; then
+    log "Wazuh: Checking connectivity to ${WAZUH_MANAGER_HOST}..."
+    if ssh -i "$SSH_KEY" -o BatchMode=yes -o ConnectTimeout=3 "${WAZUH_MANAGER_USER}@${WAZUH_MANAGER_HOST}" "echo ok" &>/dev/null; then
+        log "Wazuh: Connected successfully"
+    else
+        log "Wazuh: Connection failed - alerts will be recorded as 0"
+    fi
+else
+    log "Wazuh: Not configured (SSH key or remote script missing)"
+fi
+
+# =========================
+# CSV Header
+# =========================
+echo "ts_start,ts_end,iteration,case,file_hits,net_hits,exec_hits,wazuh_alerts" > "$CSV_FILE"
+
+if [[ ! -f "$CSV_FILE" ]]; then
+    log "FATAL: Could not create CSV file: $CSV_FILE"
+    exit 1
+fi
+
+log "CSV initialized: $CSV_FILE"
+
+# =========================
+# Environment snapshot
+# =========================
 {
-  echo "TIMESTAMP=$TIMESTAMP"
-  echo "HOST=$(hostname)"
-  echo "KERNEL=$(uname -r)"
-  echo
-  echo "=== OS ==="
-  cat /etc/os-release || true
-  echo
-  echo "=== AUDIT STATUS ==="
-  auditctl -s || true
-  echo
-  echo "=== AUDIT RULES (filtered) ==="
-  auditctl -l | egrep "openat|connect|execve" || true
-  echo
-  echo "=== WAZUH AGENT ==="
-  systemctl status wazuh-agent --no-pager || true
-} > "$ENV_FILE"
+    echo "=============================================="
+    echo "Environment Snapshot"
+    echo "=============================================="
+    echo "TIMESTAMP=$TIMESTAMP"
+    echo "HOST=$(hostname)"
+    echo "KERNEL=$(uname -r)"
+    echo "USER=$(whoami)"
+    echo "EUID=$EUID"
+    echo "REPO_ROOT=$REPO_ROOT"
+    echo ""
+    echo "=== OS ==="
+    cat /etc/os-release 2>/dev/null || echo "N/A"
+    echo ""
+    echo "=== AUDIT RULES ==="
+    sudo auditctl -l 2>/dev/null || echo "N/A (not root or auditd not running)"
+    echo ""
+    echo "=== WAZUH AGENT ==="
+    systemctl status wazuh-agent --no-pager 2>/dev/null || echo "N/A"
+    echo ""
+    echo "=== BINARIES ==="
+    ls -la "$BIN_DIR"/ 2>/dev/null || echo "N/A"
+} > "$ENV_FILE" 2>&1
 
+log "Environment snapshot: $ENV_FILE"
 
-for i in $(seq 1 $ITERATIONS); do
-    log "=== ITERATION $i of $ITERATIONS ==="
-    
+# =========================
+# Main loop
+# =========================
+echo ""
+log "=== STARTING TEST RUN ($ITERATIONS iterations) ==="
+echo ""
+
+for i in $(seq 1 "$ITERATIONS"); do
+    log "=== ITERATION $i / $ITERATIONS ==="
+
     # File I/O tests
-    log "--- File I/O Tests ---"
-    run_test "file_io_traditional" "${BIN_DIR}/file_io_trad"
-    sleep 0.5
-    run_test "file_io_uring" "${BIN_DIR}/file_io_uring"
-    sleep 0.5
-    
-    # File read tests (openat comparison)
-    log "--- File Read Tests ---"
-    run_test "read_file_traditional" "${BIN_DIR}/read_file_trad"
-    sleep 0.5
-    run_test "openat_uring" "${BIN_DIR}/openat_uring"
-    sleep 0.5
-    
+    run_case "file_io_traditional"     "${BIN_DIR}/file_io_trad"       "$i"
+    run_case "file_io_uring"           "${BIN_DIR}/file_io_uring"      "$i"
+
+    # File read/open tests
+    run_case "read_file_traditional"   "${BIN_DIR}/read_file_trad"     "$i"
+    run_case "openat_uring"            "${BIN_DIR}/openat_uring"       "$i"
+
     # Network tests
-    log "--- Network Tests ---"
-    run_test "net_connect_traditional" "${BIN_DIR}/net_connect_trad"
-    sleep 0.5
-    run_test "net_connect_uring" "${BIN_DIR}/net_connect_uring"
-    sleep 0.5
-    
-    # Process execution test (traditional only - no io_uring equivalent)
-    log "--- Process Execution Tests ---"
-    run_test "exec_cmd_traditional" "${BIN_DIR}/exec_cmd_trad"
-    sleep 0.5
-    
+    run_case "net_connect_traditional" "${BIN_DIR}/net_connect_trad"   "$i"
+    run_case "net_connect_uring"       "${BIN_DIR}/net_connect_uring"  "$i"
+
+    # Process execution (traditional only - no io_uring equivalent)
+    run_case "exec_cmd_traditional"    "${BIN_DIR}/exec_cmd_trad"      "$i"
+
     log "=== ITERATION $i COMPLETE ==="
     echo ""
 done
 
-log "=== TEST RUN COMPLETE ==="
-log "End time: $(date)"
+# =========================
+# Summary
+# =========================
+echo ""
+log "=============================================="
+log "  TEST RUN COMPLETE"
+log "=============================================="
+
+csv_rows=$(wc -l < "$CSV_FILE")
+data_rows=$((csv_rows - 1))
+
+log "Total iterations: $ITERATIONS"
+log "CSV data rows:    $data_rows"
+log ""
+log "Output files:"
+log "  CSV:  $CSV_FILE"
+log "  Log:  $LOG_FILE"
+log "  Env:  $ENV_FILE"
+
+if [[ $data_rows -eq 0 ]]; then
+    log ""
+    log "WARNING: No data rows written! Check the log for errors."
+else
+    echo ""
+    echo "=== CSV Preview (first 5 rows) ==="
+    head -6 "$CSV_FILE" | column -t -s,
+    echo ""
+fi
 
 echo ""
-echo "========================================"
-echo "Test run complete!"
-echo "Log file: $LOG_FILE"
-echo ""
 echo "Next steps:"
-echo "1. Export auditd logs:  ausearch -ts today > audit_${TIMESTAMP}.log"
-echo "2. Export Wazuh alerts from the manager"
-echo "3. Compare detection rates between *_trad and *_uring runs"
-echo "========================================"
+echo "  1. Review:   cat $CSV_FILE | column -t -s,"
+echo "  2. Analyze:  cd analysis && jupyter notebook analysis.ipynb"
+echo "  3. Audit:    sudo ausearch -ts today -k file_baseline"
+echo ""
