@@ -7,8 +7,7 @@ This project evaluates how standard Linux, syscall-focused monitoring mechanisms
 performed via traditional system calls versus execution delegated through
 `io_uring`.
 
-The goal is **not to bypass detection**, but to **measure differences in observable
-telemetry** under commonly deployed monitoring configurations. All experiments are
+The goal is to showcase how detection can be bypassed with io_uring programs that produce limited syscall telemetry. All experiments are
 conducted using benign, functionally equivalent programs.
 
 ---
