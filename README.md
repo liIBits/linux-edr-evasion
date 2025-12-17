@@ -75,7 +75,8 @@ linux-edr-evasion/
 │   └── wazuh_count_alerts_remote.sh
 │
 ├── environment/
-│   └── 99-edr-baseline.rules  # auditd rules
+│   ├── 99-edr-baseline.rules  # auditd rules
+│   └── setup.md               # VM setup guide
 │
 ├── bin/                       # Compiled binaries (after make)
 ├── data/                      # Experiment output
@@ -86,9 +87,8 @@ linux-edr-evasion/
 ├── analysis/
 │   └── analysis.ipynb         # Jupyter notebook for analysis
 │
-├── DATA_README.md
-├── ETHICS.md
-├── RUNS.md
+├── DATA_README.md             # Data schema documentation
+├── ETHICS.md                  # Ethics and responsible disclosure
 └── requirements.txt
 ```
 
@@ -238,6 +238,27 @@ The `requirements.txt` includes pandas, matplotlib, seaborn, and scipy for data 
 
 ---
 
+## Metrics Collected
+
+The experiment collects the following metrics per test case per iteration:
+
+| Metric | Column | Description |
+|--------|--------|-------------|
+| **File Events** | `file_hits` | Audit events matching `file_baseline` key |
+| **Network Events** | `net_hits` | Audit events matching `net_baseline` key |
+| **Exec Events** | `exec_hits` | Audit events matching `exec_baseline` key |
+| **io_uring Events** | `iouring_hits` | io_uring setup/enter syscalls detected |
+| **Wazuh Alerts** | `wazuh_alerts` | SIEM alerts generated |
+| **Time-to-Detection** | `time_to_detect` | Seconds from execution to first audit event |
+
+### Primary Analysis Metrics (per A3 requirements)
+
+1. **Detection Rate** — proportion of runs producing ≥1 audit event
+2. **False Negative Rate** — 1 - detection rate (runs with no alerts)
+3. **Time-to-Detection** — median latency from execution to first alert
+
+---
+
 ## Expected Results
 
 | Operation | Traditional | io_uring | auditd Detection |
@@ -252,12 +273,40 @@ Traditional syscall binaries generate higher audit and Wazuh alert counts than i
 
 ---
 
+## Analysis Outputs
+
+Running `analysis.ipynb` generates:
+
+### Figures (`analysis/results/figures/`)
+
+| Figure | Description |
+|--------|-------------|
+| `fig1_detection_rates.png` | Detection rate by test case (bar chart) |
+| `fig2_paired_comparison.png` | Traditional vs io_uring mean events |
+| `fig3_boxplots.png` | Distribution of audit events |
+| `fig4_heatmap.png` | Detection heatmap by case and metric |
+| `fig5_evasion.png` | Evasion effectiveness (% reduction) |
+
+### Tables (`analysis/results/tables/`)
+
+| Table | Description |
+|-------|-------------|
+| `detection_rates.csv` | Detection rates by case |
+| `false_negative_rates.csv` | False negative rates |
+| `time_to_detection.csv` | TTD statistics |
+| `syscall_bypass_validation.csv` | Statistical proof of bypass |
+| `mitre_mapping.csv` | ATT&CK technique mapping |
+
+---
+
 ## MITRE ATT&CK Mapping
 
-- **T1059** - Command and Scripting Interpreter (exec_cmd)
-- **T1071** - Application Layer Protocol (net_connect)
-- **T1005** - Data from Local System (file_io, read_file)
-- **T1562.001** - Impair Defenses: Disable or Modify Tools (io_uring evasion technique)
+| Technique | Name | Test Case |
+|-----------|------|-----------|
+| T1059 | Command and Scripting Interpreter | exec_cmd |
+| T1071 | Application Layer Protocol | net_connect |
+| T1005 | Data from Local System | file_io, read_file |
+| T1562.001 | Impair Defenses: Disable or Modify Tools | io_uring evasion |
 
 ---
 
@@ -277,26 +326,78 @@ make clean        # Remove compiled binaries
 
 ## Troubleshooting
 
-**io_uring binaries fail with "Function not implemented":**
+### io_uring binaries fail with "Function not implemented"
+
 - Kernel doesn't support io_uring or it's disabled
 - Check: `cat /proc/sys/kernel/io_uring_disabled` (should be 0)
-- Requires kernel 5.1+ (5.6+ for OPENAT)
+- Requires kernel 5.1+ (5.6+ for OPENAT, 5.19+ for SOCKET)
 
-**CSV file is empty:**
+### No audit events captured
+
+```bash
+# Verify auditd is running
+sudo systemctl status auditd
+
+# Verify rules are loaded
+sudo auditctl -l | grep baseline
+
+# Check audit log directly
+sudo ausearch -k file_baseline -ts recent
+```
+
+### CSV file is empty
+
 - Make sure you're running with `sudo`
 - Check that audit rules are loaded: `sudo auditctl -l`
 - Check logs: `cat logs/test_run_*.log`
 
-**Wazuh alerts always show 0:**
+### Wazuh alerts always show 0
+
 - Verify SSH connectivity: `sudo ssh -i /root/.ssh/id_rsa_fips wazuh-user@<IP>`
 - Check the remote script exists on Wazuh manager
-- This is optional - auditd metrics work independently
+- This is optional — auditd metrics work independently
+
+### Analysis notebook errors
+
+```bash
+# Ensure dependencies installed
+pip install pandas numpy matplotlib seaborn scipy jupyter
+
+# Check CSV exists
+ls -la data/processed/runs_*.csv
+```
+
+---
+
+## Reproducing This Research
+
+To fully reproduce this experiment:
+
+1. **Environment**: Rocky Linux 9.x VM with kernel 5.14+
+2. **Dependencies**: `gcc`, `make`, `audit`, `liburing-devel`
+3. **Audit Rules**: Load `environment/99-edr-baseline.rules`
+4. **Build**: `make all`
+5. **Run**: `sudo ./run_experiment.sh 30` (or more iterations)
+6. **Analyze**: `jupyter notebook analysis/analysis.ipynb`
+
+All experiment parameters are captured in:
+- `data/raw/ENV_*.txt` — system state at runtime
+- `logs/test_run_*.log` — detailed execution log
+- `data/processed/runs_*.csv` — raw results
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0 | 2025-03-XX | Initial release |
 
 ---
 
 ## Ethics
 
-This is **defensive research**. No malware, persistence mechanisms, or exploitation techniques are included. All test programs perform benign operations (read /etc/passwd, connect to localhost, execute /usr/bin/id).
+This is **defensive research**. No malware, persistence mechanisms, or exploitation techniques are included. All test programs perform benign operations (read /etc/passwd, connect to 1.1.1.1, execute /bin/true).
 
 See [ETHICS.md](ETHICS.md) for full disclosure.
 
@@ -304,13 +405,23 @@ See [ETHICS.md](ETHICS.md) for full disclosure.
 
 ## License
 
-MIT
+MIT — See [LICENSE](LICENSE) for details.
 
 ---
 
 ## References
 
-- [io_uring documentation](https://kernel.dk/io_uring.pdf)
+- [io_uring documentation (Jens Axboe)](https://kernel.dk/io_uring.pdf)
 - [liburing API](https://github.com/axboe/liburing)
-- [MITRE ATT&CK T1562](https://attack.mitre.org/techniques/T1562/)
+- [ARMO: io_uring Rootkit Research](https://www.armosec.io/blog/io_uring-rootkit-bypasses-linux-security/)
+- [MITRE ATT&CK T1562.001](https://attack.mitre.org/techniques/T1562/001/)
 - [Wazuh Documentation](https://documentation.wazuh.com/)
+- [Linux Audit System](https://github.com/linux-audit/audit-documentation)
+
+---
+
+## Acknowledgments
+
+- Dakota State University — CSC 786 Course
+- Wazuh Project — Open source SIEM
+- Jens Axboe — io_uring creator and maintainer
