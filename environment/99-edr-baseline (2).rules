@@ -1,0 +1,95 @@
+## =============================================================================
+## EDR Baseline Telemetry Rules for io_uring Evasion Experiment
+## =============================================================================
+## 
+## Purpose: Capture syscall activity for traditional binaries to compare
+##          against io_uring variants (which bypass these rules).
+##
+## Tested on: Rocky Linux 9.x / RHEL 9.x (kernel 5.14+)
+##
+## Usage:
+##   sudo auditctl -R /path/to/99-edr-baseline.rules
+##   sudo auditctl -l  # verify rules loaded
+##
+## To remove rules:
+##   sudo auditctl -D
+##
+## =============================================================================
+
+## ---------------------------
+## Delete any existing rules (clean slate)
+## ---------------------------
+-D
+
+## ---------------------------
+## Set buffer size and failure mode
+## ---------------------------
+-b 8192
+-f 1
+
+## ---------------------------
+## Process Execution
+## ---------------------------
+## Traditional binary: exec_cmd_trad
+## io_uring: N/A (execve cannot be done via io_uring)
+##
+-a always,exit -F arch=b64 -S execve,execveat -k exec_baseline
+
+## ---------------------------
+## File Operations - Path-specific monitoring
+## ---------------------------
+## Watch the test directory for any file operations
+-w /tmp/edr_test -p rwxa -k file_test_path
+
+## ---------------------------
+## File Operations - Syscall monitoring (general)
+## ---------------------------
+## Traditional binaries: file_io_trad, read_file_trad
+## io_uring variants: file_io_uring, openat_uring
+##
+## Note: io_uring file operations do NOT trigger these rules - that's the point!
+##
+## Open operations
+-a always,exit -F arch=b64 -S open,openat,openat2 -k file_baseline
+
+## Read operations (using syscall numbers for compatibility)
+## read=0, pread64=17, readv=19, preadv=295, preadv2=327 (x86_64)
+-a always,exit -F arch=b64 -S read,readv -k file_baseline
+-a always,exit -F arch=b64 -S 17,295,327 -k file_baseline
+
+## Write operations (using syscall numbers for compatibility)
+## write=1, pwrite64=18, writev=20, pwritev=296, pwritev2=328 (x86_64)
+-a always,exit -F arch=b64 -S write,writev -k file_baseline
+-a always,exit -F arch=b64 -S 18,296,328 -k file_baseline
+
+## Close
+-a always,exit -F arch=b64 -S close -k file_baseline
+
+## ---------------------------
+## Network Operations
+## ---------------------------
+## Traditional binary: net_connect_trad
+## io_uring variant: net_connect_uring
+##
+## Note: io_uring network operations do NOT trigger these rules - that's the point!
+##
+-a always,exit -F arch=b64 -S socket -k net_baseline
+-a always,exit -F arch=b64 -S connect -k net_baseline
+-a always,exit -F arch=b64 -S accept,accept4 -k net_baseline
+-a always,exit -F arch=b64 -S sendto,sendmsg -k net_baseline
+-a always,exit -F arch=b64 -S recvfrom,recvmsg -k net_baseline
+
+## ---------------------------
+## io_uring Setup (for detecting io_uring usage itself)
+## ---------------------------
+## This captures when io_uring is initialized - useful for behavioral detection
+## Even though we can't see WHAT io_uring does, we CAN see that it was set up
+##
+## io_uring_setup=425, io_uring_enter=426, io_uring_register=427 (on x86_64)
+-a always,exit -F arch=b64 -S 425,426,427 -k iouring_setup
+
+## ---------------------------
+## Make config immutable (optional - uncomment for production)
+## ---------------------------
+## Once enabled, rules cannot be changed without a reboot
+## -e 2
