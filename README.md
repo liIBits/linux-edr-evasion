@@ -251,7 +251,7 @@ The experiment collects the following metrics per test case per iteration:
 | **Wazuh Alerts** | `wazuh_alerts` | SIEM alerts generated |
 | **Time-to-Detection** | `time_to_detect` | Seconds from execution to first audit event |
 
-### Primary Analysis Metrics (per A3 requirements)
+### Primary Analysis Metrics
 
 1. **Detection Rate** — proportion of runs producing ≥1 audit event
 2. **False Negative Rate** — 1 - detection rate (runs with no alerts)
