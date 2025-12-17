@@ -187,7 +187,29 @@ sudo auditctl -R environment/99-edr-baseline.rules
 sudo auditctl -l   # Verify rules loaded
 ```
 
-### Step 4: Configure Wazuh (Optional)
+### Step 4: Verify io_uring is Enabled
+
+**Critical:** If not enabled, io_uring binaries will fail silently and produce invalid results.
+
+```bash
+# Check current status
+cat /proc/sys/kernel/io_uring_disabled
+# 0 = enabled (good)
+# 1 = disabled for unprivileged users
+# 2 = fully disabled (BAD - tests won't work)
+
+# If disabled (1 or 2), enable it:
+sudo sysctl kernel.io_uring_disabled=0
+
+# Make permanent (survives reboot)
+echo "kernel.io_uring_disabled=0" | sudo tee /etc/sysctl.d/99-iouring.conf
+sudo sysctl --system
+
+# Verify binaries work
+./bin/file_io_uring && echo "SUCCESS" || echo "FAILED"
+```
+
+### Step 5: Configure Wazuh (Optional)
 
 If using Wazuh for alert collection:
 
@@ -209,7 +231,7 @@ export WAZUH_MANAGER_USER="wazuh-user"
 export WAZUH_AGENT_NAME="rocky-target-01"
 ```
 
-### Step 5: Run Experiment
+### Step 6: Run Experiment
 
 ```bash
 # Option A: Use wrapper script
@@ -222,7 +244,7 @@ sudo make experiment N=30
 sudo ./scripts/run_tests.sh 30
 ```
 
-### Step 6: Analyze Results
+### Step 7: Analyze Results
 
 ```bash
 # View CSV directly
