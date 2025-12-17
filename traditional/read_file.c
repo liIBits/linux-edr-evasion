@@ -20,6 +20,7 @@
 #define BUFFER_SIZE  256
 
 int main(int argc, char *argv[]) {
+    /* Accept filepath as argument for unique file tagging */
     const char *filepath = (argc > 1) ? argv[1] : DEFAULT_FILE;
     char buf[BUFFER_SIZE] = {0};
     int fd;

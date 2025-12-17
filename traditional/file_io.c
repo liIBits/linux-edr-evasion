@@ -6,7 +6,8 @@
  * by EDR solutions via auditd/syscall tracing.
  *
  * Compile: gcc -o file_io file_io.c
- * Usage:   ./file_io
+ * Usage:   ./file_io [filepath]
+ * Default: /tmp/edr_test_traditional.txt
  */
 
 #define _GNU_SOURCE
@@ -15,16 +16,18 @@
 #include <string.h>
 #include <stdio.h>
 
-#define TEST_FILE "/tmp/edr_test_traditional.txt"
+#define DEFAULT_FILE "/tmp/edr_test_traditional.txt"
 #define BUFFER_SIZE 64
 
-int main(void) {
+int main(int argc, char *argv[]) {
+    /* Accept filepath as argument for unique file tagging */
+    const char *filepath = (argc > 1) ? argv[1] : DEFAULT_FILE;
     const char *data = "EDR test payload - traditional syscall\n";
     char buf[BUFFER_SIZE] = {0};
     int fd;
 
     /* open() syscall - should be logged by auditd */
-    fd = open(TEST_FILE, O_CREAT | O_RDWR | O_TRUNC, 0644);
+    fd = open(filepath, O_CREAT | O_RDWR | O_TRUNC, 0644);
     if (fd < 0) {
         perror("open");
         return 1;
@@ -51,8 +54,8 @@ int main(void) {
     close(fd);
 
     /* unlink() syscall - cleanup */
-    unlink(TEST_FILE);
+    unlink(filepath);
 
-    printf("[TRAD] File I/O complete: %s", buf);
+    printf("[TRAD] File I/O complete on %s: %s", filepath, buf);
     return 0;
 }
