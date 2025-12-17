@@ -1,4 +1,4 @@
-# Logs
+# logs/
 
 Runtime logs from experiment runs.
 
@@ -31,12 +31,7 @@ Each log file includes:
 
 ## Git Tracking
 
-Logs are typically **not tracked** in git (large, not needed for reproducibility).
-
-Add to `.gitignore`:
-```
-logs/*.log
-```
+Log files **are tracked** in this repository for reproducibility and audit purposes.
 
 ## Debugging
 
