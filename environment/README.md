@@ -15,18 +15,31 @@ The `99-edr-baseline.rules` file defines what syscalls auditd captures:
 
 | Key | Syscalls Monitored | Purpose |
 |-----|-------------------|---------|
-| `file_baseline` | open, openat, openat2, read, readv, pread64, preadv, preadv2, write, writev, pwrite64, pwritev, pwritev2, close | File operation visibility |
-| `net_baseline` | socket, connect, accept, accept4, sendto, sendmsg, sendmmsg, recvfrom, recvmsg, recvmmsg | Network operation visibility |
+| `file_baseline` | open, openat, openat2, read, readv, pread64 (17), preadv (295), preadv2 (327), write, writev, pwrite64 (18), pwritev (296), pwritev2 (328), close | File operation visibility |
+| `file_test_path` | Watch on `/tmp/edr_test` (rwxa) | Path-specific file monitoring |
+| `net_baseline` | socket, connect, accept, accept4, sendto, sendmsg, recvfrom, recvmsg | Network operation visibility |
 | `exec_baseline` | execve, execveat | Process execution visibility |
-| `iouring_setup` | io_uring_setup, io_uring_enter, io_uring_register | io_uring behavioral detection |
+| `iouring_setup` | io_uring_setup (425), io_uring_enter (426), io_uring_register (427) | io_uring behavioral detection |
 
 ### Architecture Note
 
 Rules are configured for `arch=b64` only (64-bit syscalls). Rocky Linux 9 and RHEL 9 are 64-bit systems; 32-bit syscall variants use different names and are not required for this experiment.
 
-Some syscalls (e.g., `pread64`, `pwrite64`) use numeric identifiers due to naming inconsistencies on RHEL 9:
-- Syscall 17 = `pread64`
-- Syscall 18 = `pwrite64`
+### Syscall Number Reference (x86_64)
+
+Some syscalls use numeric identifiers due to naming inconsistencies on RHEL 9:
+
+| Syscall | Number | Notes |
+|---------|--------|-------|
+| pread64 | 17 | Name not recognized on RHEL 9 |
+| pwrite64 | 18 | Name not recognized on RHEL 9 |
+| preadv | 295 | Vectored positioned read |
+| pwritev | 296 | Vectored positioned write |
+| preadv2 | 327 | Extended vectored read |
+| pwritev2 | 328 | Extended vectored write |
+| io_uring_setup | 425 | io_uring initialization |
+| io_uring_enter | 426 | SQE submission |
+| io_uring_register | 427 | Resource registration |
 
 ## Installation
 
@@ -44,20 +57,38 @@ sudo systemctl restart auditd
 sudo auditctl -l | grep baseline
 ```
 
+### Create Test Directory
+
+The rules include a path watch on `/tmp/edr_test`. Create this directory before running experiments:
+
+```bash
+mkdir -p /tmp/edr_test
+```
+
 ## Why `iouring_setup`?
 
 While io_uring I/O operations bypass traditional syscall monitoring entirely, the management syscalls remain visible:
 
-| Syscall | Visibility | Information Captured |
-|---------|------------|---------------------|
-| `io_uring_setup` | ✅ Detected | Ring buffer initialization |
-| `io_uring_enter` | ✅ Detected | SQE submission / CQE polling |
-| `io_uring_register` | ✅ Detected | File descriptor / buffer registration |
-| `IORING_OP_READ` | ❌ Not detected | Actual read operation |
-| `IORING_OP_WRITE` | ❌ Not detected | Actual write operation |
-| `IORING_OP_CONNECT` | ❌ Not detected | Actual network connection |
+| Syscall | Number | Visibility | Information Captured |
+|---------|--------|------------|---------------------|
+| `io_uring_setup` | 425 | ✅ Detected | Ring buffer initialization |
+| `io_uring_enter` | 426 | ✅ Detected | SQE submission / CQE polling |
+| `io_uring_register` | 427 | ✅ Detected | File descriptor / buffer registration |
+| `IORING_OP_READ` | — | ❌ Not detected | Actual read operation |
+| `IORING_OP_WRITE` | — | ❌ Not detected | Actual write operation |
+| `IORING_OP_CONNECT` | — | ❌ Not detected | Actual network connection |
 
 This creates a **semantic gap**: defenders can detect *that* io_uring is being used but cannot determine *what* operations are being performed. The `iouring_setup` key provides behavioral detection—a process initializing io_uring may warrant additional scrutiny—but does not restore operational visibility.
+
+## Why `file_test_path`?
+
+The `-w /tmp/edr_test -p rwxa` rule provides **path-specific monitoring** as a secondary detection mechanism. This watch rule:
+
+- Monitors a specific directory rather than all file syscalls system-wide
+- Captures read (r), write (w), execute (x), and attribute changes (a)
+- Provides file path visibility regardless of which syscall variant is used
+
+However, this rule still **does not detect io_uring operations** because io_uring bypasses the audit hooks entirely, not just the syscall-specific rules.
 
 ## Customization
 
@@ -82,7 +113,7 @@ Uncomment the following line in the rules file to prevent runtime modification (
 
 ### "syscall name unknown" error
 
-Rocky Linux 9 / RHEL 9 may not recognize certain syscall names. The provided rules use numeric syscall identifiers where necessary. If you encounter this error:
+Rocky Linux 9 / RHEL 9 may not recognize certain syscall names. The provided rules use numeric syscall identifiers where necessary. If you encounter this error for a new syscall:
 
 ```bash
 # Find the syscall number
@@ -106,6 +137,17 @@ cat /etc/passwd
 sudo ausearch -k file_baseline -ts recent
 ```
 
+### Verify io_uring rules specifically
+
+```bash
+# Check io_uring rules are loaded
+sudo auditctl -l | grep iouring
+
+# Test io_uring detection
+./bin/file_io_uring
+sudo ausearch -k iouring_setup -ts recent
+```
+
 ### High audit log volume
 
 If audit logs grow too large, consider adding filters:
@@ -116,4 +158,18 @@ If audit logs grow too large, consider adding filters:
 
 # Exclude specific paths
 -a always,exit -F arch=b64 -S openat -F path!=/var/log -k file_baseline
+```
+
+## Removing Rules
+
+To clear all audit rules (useful for debugging):
+
+```bash
+sudo auditctl -D
+```
+
+To reload after clearing:
+
+```bash
+sudo auditctl -R environment/99-edr-baseline.rules
 ```
