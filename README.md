@@ -391,7 +391,7 @@ All experiment parameters are captured in:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | 2025-03-XX | Initial release |
+| 1.0 | 2025-12-16 | Initial release |
 
 ---
 
