@@ -251,7 +251,7 @@ The experiment collects the following metrics per test case per iteration:
 | **Wazuh Alerts** | `wazuh_alerts` | SIEM alerts generated |
 | **Time-to-Detection** | `time_to_detect` | Seconds from execution to first audit event |
 
-### Primary Analysis Metrics
+### Primary Analysis Metrics (per A3 requirements)
 
 1. **Detection Rate** — proportion of runs producing ≥1 audit event
 2. **False Negative Rate** — 1 - detection rate (runs with no alerts)
@@ -367,6 +367,26 @@ pip install pandas numpy matplotlib seaborn scipy jupyter
 ls -la data/processed/runs_*.csv
 ```
 
+### Clock drift between VMs
+
+If the target VM and Wazuh manager clocks are out of sync, audit queries may miss events. Verify both VMs show the same time:
+
+```bash
+# Check time on both VMs
+date
+
+# Enable NTP sync
+sudo timedatectl set-ntp true
+
+# Force immediate sync (if chrony installed)
+sudo chronyc makestep
+
+# Or use ntpdate
+sudo ntpdate -s time.nist.gov
+```
+
+Both VMs should be within a few seconds of each other before running experiments.
+
 ---
 
 ## Reproducing This Research
@@ -391,7 +411,7 @@ All experiment parameters are captured in:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | 2025-12-16 | Initial release |
+| 1.0 | 2025-03-XX | Initial release |
 
 ---
 
