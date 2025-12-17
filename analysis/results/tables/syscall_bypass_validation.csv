@@ -1,0 +1,4 @@
+Operation,Trad Mean,Uring Mean,p-value,Bypass Confirmed
+File Write,4858.4,4651.8,0.454861,NO
+File Read,4123.3,4599.8,0.574947,NO
+Network,2131.0,1051.5,0.338792,NO

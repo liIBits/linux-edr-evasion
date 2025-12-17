@@ -1,0 +1,8 @@
+case,False Negative Rate,Method
+exec_cmd_traditional,0.0,traditional
+file_io_traditional,0.0,traditional
+file_io_uring,0.0,io_uring
+net_connect_traditional,0.0,traditional
+net_connect_uring,0.0,io_uring
+openat_uring,0.0,io_uring
+read_file_traditional,0.0,traditional

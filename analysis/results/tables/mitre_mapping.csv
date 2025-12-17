@@ -1,0 +1,5 @@
+Technique,Name,Test Case,io_uring Evasion
+T1059,Command and Scripting Interpreter,exec_cmd_traditional,N/A (execve not supported)
+T1005,Data from Local System,"file_io_*, read_file_*, openat_*",Yes
+T1071,Application Layer Protocol,net_connect_*,Yes
+T1562.001,Impair Defenses: Disable/Modify Tools,All io_uring variants,Primary finding
