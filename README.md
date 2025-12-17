@@ -277,7 +277,7 @@ The experiment collects the following metrics per test case per iteration:
 | **Time-to-Detection** | `time_to_detect` | Seconds from execution to first audit event |
 | **Path Detection** | `path_hits` | Audit events matching the specific test file path (KEY EVASION METRIC) |
 
-### Primary Analysis Metrics (per A3 requirements)
+### Primary Analysis Metrics
 
 1. **Detection Rate** — proportion of runs producing ≥1 audit event
 2. **False Negative Rate** — 1 - detection rate (runs with no alerts)
