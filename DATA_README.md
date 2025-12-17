@@ -116,7 +116,7 @@ jupyter notebook analysis.ipynb
 
 ## Metrics
 
-### Primary Metrics (per A3 requirements)
+### Primary Metrics
 
 | Metric | Definition | Calculation |
 |--------|------------|-------------|
