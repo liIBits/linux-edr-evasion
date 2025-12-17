@@ -81,7 +81,7 @@ Outputs:
   - `time_to_detection.csv`
   - `syscall_bypass_validation.csv`
 
-## Key Metrics (per A3 requirements)
+## Key Metrics
 
 1. **Detection Rate** — proportion of runs with ≥1 audit event
 2. **False Negative Rate** — 1 - detection_rate
