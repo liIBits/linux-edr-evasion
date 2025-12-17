@@ -5,6 +5,8 @@
 # Runs traditional syscall binaries and io_uring equivalents,
 # collecting auditd hits and Wazuh alerts for each run.
 #
+# UPDATED: Uses unique file paths per test case for cleaner measurement
+#
 # Usage: sudo ./scripts/run_tests.sh [iterations]
 # Default: 10 iterations
 #
@@ -31,6 +33,9 @@ DATA_DIR="${REPO_ROOT}/data"
 RAW_DIR="${DATA_DIR}/raw"
 PROCESSED_DIR="${DATA_DIR}/processed"
 
+# Test file directory - unique per run
+TEST_DIR="/tmp/edr_test_$$"
+
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="${LOG_DIR}/test_run_${TIMESTAMP}.log"
 CSV_FILE="${PROCESSED_DIR}/runs_${TIMESTAMP}.csv"
@@ -41,6 +46,7 @@ AUDIT_KEY_FILE="file_baseline"
 AUDIT_KEY_NET="net_baseline"
 AUDIT_KEY_EXEC="exec_baseline"
 AUDIT_KEY_IOURING="iouring_setup"
+AUDIT_KEY_PATH="file_test_path"
 
 # --- Wazuh manager config (override via environment) ---
 WAZUH_MANAGER_HOST="${WAZUH_MANAGER_HOST:-10.0.0.7}"
@@ -51,7 +57,7 @@ SSH_KEY="${SSH_KEY:-/root/.ssh/id_rsa_fips}"
 WAZUH_REMOTE_SCRIPT="${SCRIPT_DIR}/wazuh_count_alerts_remote.sh"
 
 # Create output directories
-mkdir -p "$LOG_DIR" "$RAW_DIR" "$PROCESSED_DIR"
+mkdir -p "$LOG_DIR" "$RAW_DIR" "$PROCESSED_DIR" "$TEST_DIR"
 
 # =========================
 # Logging
@@ -66,19 +72,15 @@ log() {
 # Helpers
 # =========================
 
-# Count audit EVENTS (not lines) for a given key and time range
-# Uses --format raw and counts "type=" occurrences for accurate event count
+# Count audit EVENTS for a given key and time range
 audit_event_count() {
     local key="$1"
     local start_ts="$2"
     local end_ts="$3"
     local count
 
-    # ausearch returns exit code 1 when no records found - that's expected
-    # Count actual audit records by counting "type=" which starts each event
     count=$(sudo ausearch -k "$key" -ts "$start_ts" -te "$end_ts" 2>/dev/null | grep -c "^type=" ) || true
 
-    # Ensure we return a valid number
     if [[ -z "$count" || ! "$count" =~ ^[0-9]+$ ]]; then
         echo "0"
     else
@@ -86,15 +88,31 @@ audit_event_count() {
     fi
 }
 
-# Get timestamp of first audit event for a key (for time-to-detection)
-# Returns epoch timestamp or "0" if no events
+# Search audit log for a SPECIFIC file path
+# This is key for proving io_uring evasion - the path won't appear for io_uring ops
+audit_path_search() {
+    local filepath="$1"
+    local start_ts="$2"
+    local end_ts="$3"
+    local count
+
+    # Search for the specific filepath in audit logs
+    count=$(sudo ausearch -k "$AUDIT_KEY_FILE" -ts "$start_ts" -te "$end_ts" 2>/dev/null | grep -c "$filepath" ) || true
+
+    if [[ -z "$count" || ! "$count" =~ ^[0-9]+$ ]]; then
+        echo "0"
+    else
+        echo "$count"
+    fi
+}
+
+# Get timestamp of first audit event for a key
 audit_first_event_time() {
     local key="$1"
     local start_ts="$2"
     local end_ts="$3"
     local first_time
 
-    # Get the first event's timestamp
     first_time=$(sudo ausearch -k "$key" -ts "$start_ts" -te "$end_ts" 2>/dev/null | \
                  grep -m1 "^time->" | \
                  sed 's/time->//' | \
@@ -113,13 +131,11 @@ wazuh_alerts_between() {
     local count
 
     if [[ ! -f "$WAZUH_REMOTE_SCRIPT" ]]; then
-        # Silent skip if script doesn't exist
         echo "0"
         return 0
     fi
 
     if [[ ! -f "$SSH_KEY" ]]; then
-        # No SSH key configured
         echo "0"
         return 0
     fi
@@ -134,7 +150,6 @@ wazuh_alerts_between() {
         "bash -s -- ${start_epoch} ${end_epoch} ${WAZUH_AGENT_NAME}" < \
         "$WAZUH_REMOTE_SCRIPT" 2>/dev/null) || true
 
-    # Ensure we return a valid number
     if [[ -z "$count" || ! "$count" =~ ^[0-9]+$ ]]; then
         echo "0"
     else
@@ -142,27 +157,39 @@ wazuh_alerts_between() {
     fi
 }
 
-run_case() {
+# Run a file-based test case with unique filepath
+run_file_case() {
     local case_name="$1"
     local binary="$2"
     local iteration="$3"
+    local use_unique_path="$4"  # "yes" or "no"
 
     local ts_start_epoch ts_end_epoch ts_start_h ts_end_h rc
     local file_events net_events exec_events iouring_events wazuh_alerts
-    local first_alert_time time_to_detect
+    local path_events first_alert_time time_to_detect
+    local test_filepath=""
+
+    # Create unique filepath for this test
+    if [[ "$use_unique_path" == "yes" ]]; then
+        test_filepath="${TEST_DIR}/${case_name}_iter${iteration}.txt"
+    fi
 
     # Record start time
     ts_start_epoch=$(date +%s)
     ts_start_h=$(date -d "@$ts_start_epoch" "+%H:%M:%S")
 
-    log "START: $case_name (iter=$iteration)"
+    log "START: $case_name (iter=$iteration) ${test_filepath:+file=$test_filepath}"
 
     # Flush audit log before running
     sync
     
     if [[ -x "$binary" ]]; then
-        # Run binary and capture exit code without failing script
-        "$binary" >> "$LOG_FILE" 2>&1 || true
+        # Run binary with filepath argument if applicable
+        if [[ -n "$test_filepath" ]]; then
+            "$binary" "$test_filepath" >> "$LOG_FILE" 2>&1 || true
+        else
+            "$binary" >> "$LOG_FILE" 2>&1 || true
+        fi
         rc=${PIPESTATUS[0]:-$?}
     else
         rc=127
@@ -170,7 +197,7 @@ run_case() {
     fi
 
     # Small delay to ensure audit logs are flushed
-    sleep 0.3
+    sleep 0.5
     sync
 
     # Record end time
@@ -179,29 +206,88 @@ run_case() {
 
     log "  END: exit=$rc, duration=$((ts_end_epoch - ts_start_epoch))s"
 
-    # Query audit events (count actual events, not lines)
+    # Query audit events (general counts)
     file_events=$(audit_event_count "$AUDIT_KEY_FILE" "$ts_start_h" "$ts_end_h")
     net_events=$(audit_event_count "$AUDIT_KEY_NET" "$ts_start_h" "$ts_end_h")
     exec_events=$(audit_event_count "$AUDIT_KEY_EXEC" "$ts_start_h" "$ts_end_h")
     iouring_events=$(audit_event_count "$AUDIT_KEY_IOURING" "$ts_start_h" "$ts_end_h")
 
+    # Path-specific search (KEY METRIC for proving evasion)
+    if [[ -n "$test_filepath" ]]; then
+        path_events=$(audit_path_search "$test_filepath" "$ts_start_h" "$ts_end_h")
+    else
+        path_events="-1"  # Not applicable
+    fi
+
     # Query Wazuh alerts
     wazuh_alerts=$(wazuh_alerts_between "$ts_start_epoch" "$ts_end_epoch")
 
-    # Calculate time-to-detection (if any detection occurred)
-    # Use the earliest alert timestamp from any source
+    # Calculate time-to-detection
     first_alert_time=$(audit_first_event_time "$AUDIT_KEY_FILE" "$ts_start_h" "$ts_end_h")
     if [[ "$first_alert_time" -gt 0 ]]; then
         time_to_detect=$((first_alert_time - ts_start_epoch))
     else
-        time_to_detect="-1"  # -1 indicates no detection
+        time_to_detect="-1"
     fi
 
     # Log results
-    log "  -> file=$file_events net=$net_events exec=$exec_events iouring=$iouring_events wazuh=$wazuh_alerts ttd=${time_to_detect}s"
+    log "  -> file=$file_events net=$net_events exec=$exec_events iouring=$iouring_events path_hits=$path_events wazuh=$wazuh_alerts ttd=${time_to_detect}s"
 
     # Write to CSV
-    echo "${ts_start_epoch},${ts_end_epoch},${iteration},${case_name},${file_events},${net_events},${exec_events},${iouring_events},${wazuh_alerts},${time_to_detect}" >> "$CSV_FILE"
+    echo "${ts_start_epoch},${ts_end_epoch},${iteration},${case_name},${file_events},${net_events},${exec_events},${iouring_events},${wazuh_alerts},${time_to_detect},${path_events}" >> "$CSV_FILE"
+}
+
+# Run a network test case (no unique filepath needed)
+run_net_case() {
+    local case_name="$1"
+    local binary="$2"
+    local iteration="$3"
+
+    local ts_start_epoch ts_end_epoch ts_start_h ts_end_h rc
+    local file_events net_events exec_events iouring_events wazuh_alerts
+    local first_alert_time time_to_detect
+
+    ts_start_epoch=$(date +%s)
+    ts_start_h=$(date -d "@$ts_start_epoch" "+%H:%M:%S")
+
+    log "START: $case_name (iter=$iteration)"
+
+    sync
+    
+    if [[ -x "$binary" ]]; then
+        "$binary" >> "$LOG_FILE" 2>&1 || true
+        rc=${PIPESTATUS[0]:-$?}
+    else
+        rc=127
+        log "  SKIP: missing binary $binary"
+    fi
+
+    sleep 0.5
+    sync
+
+    ts_end_epoch=$(date +%s)
+    ts_end_h=$(date -d "@$ts_end_epoch" "+%H:%M:%S")
+
+    log "  END: exit=$rc, duration=$((ts_end_epoch - ts_start_epoch))s"
+
+    file_events=$(audit_event_count "$AUDIT_KEY_FILE" "$ts_start_h" "$ts_end_h")
+    net_events=$(audit_event_count "$AUDIT_KEY_NET" "$ts_start_h" "$ts_end_h")
+    exec_events=$(audit_event_count "$AUDIT_KEY_EXEC" "$ts_start_h" "$ts_end_h")
+    iouring_events=$(audit_event_count "$AUDIT_KEY_IOURING" "$ts_start_h" "$ts_end_h")
+
+    wazuh_alerts=$(wazuh_alerts_between "$ts_start_epoch" "$ts_end_epoch")
+
+    first_alert_time=$(audit_first_event_time "$AUDIT_KEY_NET" "$ts_start_h" "$ts_end_h")
+    if [[ "$first_alert_time" -gt 0 ]]; then
+        time_to_detect=$((first_alert_time - ts_start_epoch))
+    else
+        time_to_detect="-1"
+    fi
+
+    log "  -> file=$file_events net=$net_events exec=$exec_events iouring=$iouring_events wazuh=$wazuh_alerts ttd=${time_to_detect}s"
+
+    # path_events = -1 for network tests (not applicable)
+    echo "${ts_start_epoch},${ts_end_epoch},${iteration},${case_name},${file_events},${net_events},${exec_events},${iouring_events},${wazuh_alerts},${time_to_detect},-1" >> "$CSV_FILE"
 }
 
 # =========================
@@ -216,6 +302,7 @@ echo ""
 log "=== CONFIGURATION ==="
 log "Repo root:   $REPO_ROOT"
 log "Binary dir:  $BIN_DIR"
+log "Test dir:    $TEST_DIR"
 log "Iterations:  $ITERATIONS"
 log "CSV output:  $CSV_FILE"
 log "Log file:    $LOG_FILE"
@@ -278,7 +365,7 @@ fi
 # =========================
 # CSV Header
 # =========================
-echo "ts_start,ts_end,iteration,case,file_hits,net_hits,exec_hits,iouring_hits,wazuh_alerts,time_to_detect" > "$CSV_FILE"
+echo "ts_start,ts_end,iteration,case,file_hits,net_hits,exec_hits,iouring_hits,wazuh_alerts,time_to_detect,path_hits" > "$CSV_FILE"
 
 if [[ ! -f "$CSV_FILE" ]]; then
     log "FATAL: Could not create CSV file: $CSV_FILE"
@@ -300,6 +387,7 @@ log "CSV initialized: $CSV_FILE"
     echo "USER=$(whoami)"
     echo "EUID=$EUID"
     echo "REPO_ROOT=$REPO_ROOT"
+    echo "TEST_DIR=$TEST_DIR"
     echo "ITERATIONS=$ITERATIONS"
     echo ""
     echo "=== OS ==="
@@ -329,7 +417,7 @@ log "Environment snapshot: $ENV_FILE"
 # =========================
 # Clear audit log before starting (fresh baseline)
 # =========================
-log "Clearing old audit events..."
+log "Clearing old audit events and reloading rules..."
 sudo auditctl -D &>/dev/null || true
 sleep 0.5
 sudo auditctl -R "${REPO_ROOT}/environment/99-edr-baseline.rules" &>/dev/null || {
@@ -347,20 +435,20 @@ echo ""
 for i in $(seq 1 "$ITERATIONS"); do
     log "=== ITERATION $i / $ITERATIONS ==="
 
-    # File I/O tests (write)
-    run_case "file_io_traditional"     "${BIN_DIR}/file_io_trad"       "$i"
-    run_case "file_io_uring"           "${BIN_DIR}/file_io_uring"      "$i"
+    # File I/O tests (write) - with unique file paths
+    run_file_case "file_io_traditional"     "${BIN_DIR}/file_io_trad"       "$i" "yes"
+    run_file_case "file_io_uring"           "${BIN_DIR}/file_io_uring"      "$i" "yes"
 
-    # File I/O tests (read/open)
-    run_case "read_file_traditional"   "${BIN_DIR}/read_file_trad"     "$i"
-    run_case "openat_uring"            "${BIN_DIR}/openat_uring"       "$i"
+    # File I/O tests (read/open) - with unique file paths
+    run_file_case "read_file_traditional"   "${BIN_DIR}/read_file_trad"     "$i" "yes"
+    run_file_case "openat_uring"            "${BIN_DIR}/openat_uring"       "$i" "yes"
 
-    # Network tests
-    run_case "net_connect_traditional" "${BIN_DIR}/net_connect_trad"   "$i"
-    run_case "net_connect_uring"       "${BIN_DIR}/net_connect_uring"  "$i"
+    # Network tests - no unique filepath needed
+    run_net_case "net_connect_traditional" "${BIN_DIR}/net_connect_trad"   "$i"
+    run_net_case "net_connect_uring"       "${BIN_DIR}/net_connect_uring"  "$i"
 
     # Process execution (traditional only - no io_uring equivalent)
-    run_case "exec_cmd_traditional"    "${BIN_DIR}/exec_cmd_trad"      "$i"
+    run_file_case "exec_cmd_traditional"    "${BIN_DIR}/exec_cmd_trad"      "$i" "no"
 
     log "=== ITERATION $i COMPLETE ==="
     echo ""
@@ -398,12 +486,31 @@ echo ""
 
 # Quick summary statistics
 echo "=== Quick Stats ==="
-echo "Traditional cases (should have high audit hits):"
+echo ""
+echo "Traditional cases (file_hits + net_hits + exec_hits):"
 grep "traditional" "$CSV_FILE" | awk -F, '{sum+=$5+$6+$7} END {print "  Total audit events: " sum}'
 
-echo "io_uring cases (should have low/zero audit hits for file/net):"
+echo ""
+echo "io_uring cases:"
 grep "uring" "$CSV_FILE" | awk -F, '{sum+=$5+$6} END {print "  Total file+net audit events: " sum}'
 grep "uring" "$CSV_FILE" | awk -F, '{sum+=$8} END {print "  Total iouring_setup events: " sum}'
+
+echo ""
+echo "=== PATH-SPECIFIC DETECTION (KEY EVASION METRIC) ==="
+echo "This shows whether the SPECIFIC test file appeared in audit logs:"
+echo ""
+echo "Traditional file operations (path_hits column):"
+grep "file_io_traditional\|read_file_traditional" "$CSV_FILE" | awk -F, '{sum+=$11} END {print "  Total path hits: " sum " (should be > 0)"}'
+
+echo ""
+echo "io_uring file operations (path_hits column):"
+grep "file_io_uring\|openat_uring" "$CSV_FILE" | awk -F, '{sum+=$11} END {print "  Total path hits: " sum " (should be 0 or very low = EVASION CONFIRMED)"}'
+
+echo ""
+echo "=== CLEANUP ==="
+log "Test files were in: $TEST_DIR"
+rm -rf "$TEST_DIR" 2>/dev/null || true
+log "Test directory cleaned up"
 
 echo ""
 echo "Next steps:"
