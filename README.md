@@ -275,6 +275,7 @@ The experiment collects the following metrics per test case per iteration:
 | **io_uring Events** | `iouring_hits` | io_uring setup/enter syscalls detected |
 | **Wazuh Alerts** | `wazuh_alerts` | SIEM alerts generated |
 | **Time-to-Detection** | `time_to_detect` | Seconds from execution to first audit event |
+| **Path Detection** | `path_hits` | Audit events matching the specific test file path (KEY EVASION METRIC) |
 
 ### Primary Analysis Metrics (per A3 requirements)
 
