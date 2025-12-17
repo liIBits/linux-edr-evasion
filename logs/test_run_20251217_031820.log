@@ -1,0 +1,177 @@
+[2025-12-17 03:18:20.050] === CONFIGURATION ===
+[2025-12-17 03:18:20.072] Repo root:   /root/linux-edr-evasion
+[2025-12-17 03:18:20.093] Binary dir:  /root/linux-edr-evasion/bin
+[2025-12-17 03:18:20.114] Test dir:    /tmp/edr_test_19799
+[2025-12-17 03:18:20.136] Iterations:  5
+[2025-12-17 03:18:20.159] CSV output:  /root/linux-edr-evasion/data/processed/runs_20251217_031820.csv
+[2025-12-17 03:18:20.181] Log file:    /root/linux-edr-evasion/logs/test_run_20251217_031820.log
+[2025-12-17 03:18:20.203] Checking audit rules...
+[2025-12-17 03:18:20.238]   Found 13 audit rules matching baseline/iouring keys
+[2025-12-17 03:18:20.261] Wazuh: Checking connectivity to 10.0.0.7...
+[2025-12-17 03:18:23.108]   Wazuh: Connected successfully
+[2025-12-17 03:18:23.133] CSV initialized: /root/linux-edr-evasion/data/processed/runs_20251217_031820.csv
+[2025-12-17 03:18:23.842] Environment snapshot: /root/linux-edr-evasion/data/raw/ENV_20251217_031820.txt
+[2025-12-17 03:18:23.863] Clearing old audit events and reloading rules...
+[2025-12-17 03:18:26.933] === STARTING TEST RUN (5 iterations) ===
+[2025-12-17 03:18:26.966] === ITERATION 1 / 5 ===
+[2025-12-17 03:18:27.006] START: file_io_traditional (iter=1) file=/tmp/edr_test_19799/file_io_traditional_iter1.txt
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 03:18:30.691]   END: exit=0, duration=4s
+[2025-12-17 03:19:00.061]   -> file=4742 net=5349 exec=111 iouring=4 path_hits=0 wazuh=1 ttd=0s
+[2025-12-17 03:19:00.874] START: file_io_uring (iter=1) file=/tmp/edr_test_19799/file_io_uring_iter1.txt
+[URING] File I/O complete: [2025-12-17 03:19:01.584]   END: exit=0, duration=1s
+[2025-12-17 03:19:12.535]   -> file=1266 net=255 exec=124 iouring=6 path_hits=0 wazuh=0 ttd=0s
+[2025-12-17 03:19:12.572] START: read_file_traditional (iter=1) file=/tmp/edr_test_19799/read_file_traditional_iter1.txt
+openat: No such file or directory
+[2025-12-17 03:19:13.270]   END: exit=0, duration=1s
+[2025-12-17 03:19:21.403]   -> file=2257 net=1000 exec=184 iouring=0 path_hits=1 wazuh=0 ttd=0s
+[2025-12-17 03:19:23.600] START: openat_uring (iter=1) file=/tmp/edr_test_19799/openat_uring_iter1.txt
+openat failed: No such file or directory
+[2025-12-17 03:19:24.445]   END: exit=0, duration=3s
+[2025-12-17 03:19:48.399]   -> file=966 net=534 exec=148 iouring=9 path_hits=0 wazuh=1 ttd=0s
+[2025-12-17 03:19:48.446] START: net_connect_traditional (iter=1)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 03:19:56.451]   END: exit=0, duration=8s
+[2025-12-17 03:20:16.488]   -> file=9692 net=6798 exec=112 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 03:20:16.527] START: net_connect_uring (iter=1)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 03:20:17.315]   END: exit=0, duration=1s
+[2025-12-17 03:20:31.810]   -> file=6252 net=1312 exec=118 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 03:20:31.843] START: exec_cmd_traditional (iter=1) 
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=20241, status=0)
+[2025-12-17 03:20:32.537]   END: exit=0, duration=1s
+[2025-12-17 03:20:48.777]   -> file=5576 net=466 exec=136 iouring=0 path_hits=-1 wazuh=2 ttd=0s
+[2025-12-17 03:20:48.805] === ITERATION 1 COMPLETE ===
+[2025-12-17 03:20:48.829] === ITERATION 2 / 5 ===
+[2025-12-17 03:20:48.861] START: file_io_traditional (iter=2) file=/tmp/edr_test_19799/file_io_traditional_iter2.txt
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 03:20:49.550]   END: exit=0, duration=1s
+[2025-12-17 03:21:30.253]   -> file=8469 net=822 exec=190 iouring=0 path_hits=0 wazuh=0 ttd=0s
+[2025-12-17 03:21:30.283] START: file_io_uring (iter=2) file=/tmp/edr_test_19799/file_io_uring_iter2.txt
+[URING] File I/O complete: [2025-12-17 03:21:30.958]   END: exit=0, duration=0s
+[2025-12-17 03:22:05.694]   -> file=5047 net=955 exec=118 iouring=6 path_hits=0 wazuh=0 ttd=0s
+[2025-12-17 03:22:05.732] START: read_file_traditional (iter=2) file=/tmp/edr_test_19799/read_file_traditional_iter2.txt
+openat: No such file or directory
+[2025-12-17 03:22:10.166]   END: exit=0, duration=5s
+[2025-12-17 03:22:31.716]   -> file=7609 net=6792 exec=130 iouring=0 path_hits=1 wazuh=1 ttd=0s
+[2025-12-17 03:22:31.742] START: openat_uring (iter=2) file=/tmp/edr_test_19799/openat_uring_iter2.txt
+openat failed: No such file or directory
+[2025-12-17 03:22:35.462]   END: exit=0, duration=4s
+[2025-12-17 03:22:51.772]   -> file=8374 net=2151 exec=166 iouring=9 path_hits=0 wazuh=20 ttd=0s
+[2025-12-17 03:22:56.425] START: net_connect_traditional (iter=2)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 03:23:00.356]   END: exit=0, duration=9s
+[2025-12-17 03:23:09.535]   -> file=12259 net=7505 exec=166 iouring=0 wazuh=3 ttd=0s
+[2025-12-17 03:23:09.571] START: net_connect_uring (iter=2)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 03:23:10.398]   END: exit=0, duration=1s
+[2025-12-17 03:23:19.357]   -> file=6069 net=432 exec=154 iouring=6 wazuh=3 ttd=0s
+[2025-12-17 03:23:19.393] START: exec_cmd_traditional (iter=2) 
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=20653, status=0)
+[2025-12-17 03:23:20.056]   END: exit=0, duration=1s
+[2025-12-17 03:23:26.858]   -> file=2712 net=147 exec=124 iouring=0 path_hits=-1 wazuh=3 ttd=0s
+[2025-12-17 03:23:26.879] === ITERATION 2 COMPLETE ===
+[2025-12-17 03:23:26.902] === ITERATION 3 / 5 ===
+[2025-12-17 03:23:26.938] START: file_io_traditional (iter=3) file=/tmp/edr_test_19799/file_io_traditional_iter3.txt
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 03:23:30.498]   END: exit=0, duration=4s
+[2025-12-17 03:23:39.327]   -> file=6799 net=819 exec=190 iouring=0 path_hits=0 wazuh=3 ttd=0s
+[2025-12-17 03:23:39.367] START: file_io_uring (iter=3) file=/tmp/edr_test_19799/file_io_uring_iter3.txt
+[URING] File I/O complete: [2025-12-17 03:23:40.783]   END: exit=0, duration=1s
+[2025-12-17 03:23:49.644]   -> file=2101 net=330 exec=130 iouring=6 path_hits=0 wazuh=3 ttd=0s
+[2025-12-17 03:23:53.090] START: read_file_traditional (iter=3) file=/tmp/edr_test_19799/read_file_traditional_iter3.txt
+openat: No such file or directory
+[2025-12-17 03:23:53.794]   END: exit=0, duration=4s
+[2025-12-17 03:24:24.611]   -> file=4012 net=6043 exec=106 iouring=0 path_hits=1 wazuh=0 ttd=0s
+[2025-12-17 03:24:24.663] START: openat_uring (iter=3) file=/tmp/edr_test_19799/openat_uring_iter3.txt
+openat failed: No such file or directory
+[2025-12-17 03:24:25.394]   END: exit=0, duration=1s
+[2025-12-17 03:24:36.140]   -> file=1103 net=854 exec=120 iouring=9 path_hits=0 wazuh=0 ttd=0s
+[2025-12-17 03:24:36.180] START: net_connect_traditional (iter=3)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 03:24:36.845]   END: exit=0, duration=0s
+[2025-12-17 03:24:45.035]   -> file=2319 net=60 exec=118 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 03:24:45.074] START: net_connect_uring (iter=3)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 03:24:45.856]   END: exit=0, duration=0s
+[2025-12-17 03:24:58.966]   -> file=0 net=264 exec=124 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 03:24:59.007] START: exec_cmd_traditional (iter=3) 
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=21057, status=0)
+[2025-12-17 03:25:04.811]   END: exit=0, duration=1s
+[2025-12-17 03:25:22.653]   -> file=7180 net=614 exec=112 iouring=0 path_hits=-1 wazuh=0 ttd=0s
+[2025-12-17 03:25:22.675] === ITERATION 3 COMPLETE ===
+[2025-12-17 03:25:22.699] === ITERATION 4 / 5 ===
+[2025-12-17 03:25:22.739] START: file_io_traditional (iter=4) file=/tmp/edr_test_19799/file_io_traditional_iter4.txt
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 03:25:23.445]   END: exit=0, duration=1s
+[2025-12-17 03:25:36.751]   -> file=6407 net=979 exec=148 iouring=0 path_hits=0 wazuh=7 ttd=0s
+[2025-12-17 03:25:36.773] START: file_io_uring (iter=4) file=/tmp/edr_test_19799/file_io_uring_iter4.txt
+[URING] File I/O complete: [2025-12-17 03:25:37.457]   END: exit=0, duration=1s
+[2025-12-17 03:25:49.137]   -> file=3412 net=816 exec=178 iouring=6 path_hits=0 wazuh=1 ttd=0s
+[2025-12-17 03:25:49.181] START: read_file_traditional (iter=4) file=/tmp/edr_test_19799/read_file_traditional_iter4.txt
+openat: No such file or directory
+[2025-12-17 03:25:49.855]   END: exit=0, duration=0s
+[2025-12-17 03:26:03.605]   -> file=1280 net=363 exec=130 iouring=0 path_hits=1 wazuh=0 ttd=0s
+[2025-12-17 03:26:03.654] START: openat_uring (iter=4) file=/tmp/edr_test_19799/openat_uring_iter4.txt
+openat failed: No such file or directory
+[2025-12-17 03:26:04.376]   END: exit=0, duration=1s
+[2025-12-17 03:26:33.854]   -> file=6783 net=1284 exec=122 iouring=9 path_hits=0 wazuh=5 ttd=0s
+[2025-12-17 03:26:33.892] START: net_connect_traditional (iter=4)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 03:26:34.622]   END: exit=0, duration=1s
+[2025-12-17 03:26:44.713]   -> file=502 net=1081 exec=184 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 03:26:44.732] START: net_connect_uring (iter=4)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 03:26:45.440]   END: exit=0, duration=1s
+[2025-12-17 03:26:54.599]   -> file=414 net=33 exec=118 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 03:26:54.640] START: exec_cmd_traditional (iter=4) 
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=21460, status=0)
+[2025-12-17 03:26:55.382]   END: exit=0, duration=1s
+[2025-12-17 03:27:20.377]   -> file=3529 net=861 exec=184 iouring=0 path_hits=-1 wazuh=0 ttd=0s
+[2025-12-17 03:27:20.429] === ITERATION 4 COMPLETE ===
+[2025-12-17 03:27:20.478] === ITERATION 5 / 5 ===
+[2025-12-17 03:27:25.393] START: file_io_traditional (iter=5) file=/tmp/edr_test_19799/file_io_traditional_iter5.txt
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 03:27:26.087]   END: exit=0, duration=1s
+[2025-12-17 03:27:54.663]   -> file=3969 net=482 exec=90 iouring=0 path_hits=0 wazuh=0 ttd=0s
+[2025-12-17 03:27:54.707] START: file_io_uring (iter=5) file=/tmp/edr_test_19799/file_io_uring_iter5.txt
+[URING] File I/O complete: [2025-12-17 03:27:55.392]   END: exit=0, duration=1s
+[2025-12-17 03:28:25.360]   -> file=2345 net=1121 exec=102 iouring=6 path_hits=0 wazuh=0 ttd=0s
+[2025-12-17 03:28:25.392] START: read_file_traditional (iter=5) file=/tmp/edr_test_19799/read_file_traditional_iter5.txt
+openat: No such file or directory
+[2025-12-17 03:28:26.130]   END: exit=0, duration=1s
+[2025-12-17 03:28:38.806]   -> file=5585 net=765 exec=124 iouring=0 path_hits=1 wazuh=0 ttd=0s
+[2025-12-17 03:28:41.864] START: openat_uring (iter=5) file=/tmp/edr_test_19799/openat_uring_iter5.txt
+openat failed: No such file or directory
+[2025-12-17 03:28:45.432]   END: exit=0, duration=7s
+[2025-12-17 03:29:01.046]   -> file=7850 net=6255 exec=166 iouring=9 path_hits=0 wazuh=1 ttd=0s
+[2025-12-17 03:29:03.826] START: net_connect_traditional (iter=5)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 03:29:04.550]   END: exit=0, duration=1s
+[2025-12-17 03:29:14.839]   -> file=4489 net=966 exec=96 iouring=0 wazuh=3 ttd=0s
+[2025-12-17 03:29:14.882] START: net_connect_uring (iter=5)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 03:29:15.688]   END: exit=0, duration=1s
+[2025-12-17 03:29:34.587]   -> file=139 net=862 exec=178 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 03:29:34.630] START: exec_cmd_traditional (iter=5) 
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=21873, status=0)
+[2025-12-17 03:29:39.291]   END: exit=0, duration=1s
+[2025-12-17 03:29:58.150]   -> file=3091 net=3348 exec=82 iouring=0 path_hits=-1 wazuh=0 ttd=0s
+[2025-12-17 03:29:58.174] === ITERATION 5 COMPLETE ===
+[2025-12-17 03:29:58.200] ==============================================
+[2025-12-17 03:29:58.221]   TEST RUN COMPLETE
+[2025-12-17 03:29:58.242] ==============================================
+[2025-12-17 03:29:58.271] Total iterations: 5
+[2025-12-17 03:29:58.290] CSV data rows:    35 (expected: 35)
+[2025-12-17 03:29:58.312] 
+[2025-12-17 03:29:58.333] Output files:
+[2025-12-17 03:29:58.353]   CSV:  /root/linux-edr-evasion/data/processed/runs_20251217_031820.csv
+[2025-12-17 03:29:58.372]   Log:  /root/linux-edr-evasion/logs/test_run_20251217_031820.log
+[2025-12-17 03:29:58.394]   Env:  /root/linux-edr-evasion/data/raw/ENV_20251217_031820.txt
+[2025-12-17 03:29:59.697] Test files were in: /tmp/edr_test_19799
+[2025-12-17 03:29:59.730] Test directory cleaned up
