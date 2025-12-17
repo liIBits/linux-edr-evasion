@@ -5,6 +5,8 @@
 ## Purpose: Capture syscall activity for traditional binaries to compare
 ##          against io_uring variants (which bypass these rules).
 ##
+## Tested on: Rocky Linux 9.x / RHEL 9.x (kernel 5.14+)
+##
 ## Usage:
 ##   sudo auditctl -R /path/to/99-edr-baseline.rules
 ##   sudo auditctl -l  # verify rules loaded
@@ -28,52 +30,50 @@
 ## ---------------------------
 ## Process Execution
 ## ---------------------------
-## Captures: fork, clone, execve
 ## Traditional binary: exec_cmd_trad
 ## io_uring: N/A (execve cannot be done via io_uring)
 ##
--a always,exit -F arch=b64 -S execve -k exec_baseline
--a always,exit -F arch=b32 -S execve -k exec_baseline
--a always,exit -F arch=b64 -S execveat -k exec_baseline
--a always,exit -F arch=b32 -S execveat -k exec_baseline
+-a always,exit -F arch=b64 -S execve,execveat -k exec_baseline
 
 ## ---------------------------
 ## File Operations
 ## ---------------------------
-## Captures: open, openat, read, write, close
 ## Traditional binaries: file_io_trad, read_file_trad
-## io_uring variants: file_io_uring (IORING_OP_WRITE/READ), openat_uring (IORING_OP_OPENAT)
+## io_uring variants: file_io_uring, openat_uring
 ##
 ## Note: io_uring file operations do NOT trigger these rules - that's the point!
 ##
+## Open operations
 -a always,exit -F arch=b64 -S open,openat,openat2 -k file_baseline
--a always,exit -F arch=b32 -S open,openat,openat2 -k file_baseline
--a always,exit -F arch=b64 -S read,readv,pread64,preadv,preadv2 -k file_baseline
--a always,exit -F arch=b32 -S read,readv,pread64,preadv,preadv2 -k file_baseline
--a always,exit -F arch=b64 -S write,writev,pwrite64,pwritev,pwritev2 -k file_baseline
--a always,exit -F arch=b32 -S write,writev,pwrite64,pwritev,pwritev2 -k file_baseline
+
+## Read operations (using syscall numbers for compatibility)
+## read=0, readv=19, pread64=17, preadv=295, preadv2=327
+-a always,exit -F arch=b64 -S read,readv -k file_baseline
+-a always,exit -F arch=b64 -S 17 -k file_baseline
+-a always,exit -F arch=b64 -S preadv,preadv2 -k file_baseline
+
+## Write operations (using syscall numbers for compatibility)  
+## write=1, writev=20, pwrite64=18, pwritev=296, pwritev2=328
+-a always,exit -F arch=b64 -S write,writev -k file_baseline
+-a always,exit -F arch=b64 -S 18 -k file_baseline
+-a always,exit -F arch=b64 -S pwritev,pwritev2 -k file_baseline
+
+## Close
 -a always,exit -F arch=b64 -S close -k file_baseline
--a always,exit -F arch=b32 -S close -k file_baseline
 
 ## ---------------------------
 ## Network Operations
 ## ---------------------------
-## Captures: socket, connect, send, recv, etc.
 ## Traditional binary: net_connect_trad
-## io_uring variant: net_connect_uring (IORING_OP_CONNECT/SEND/RECV)
+## io_uring variant: net_connect_uring
 ##
 ## Note: io_uring network operations do NOT trigger these rules - that's the point!
 ##
 -a always,exit -F arch=b64 -S socket -k net_baseline
--a always,exit -F arch=b32 -S socket -k net_baseline
 -a always,exit -F arch=b64 -S connect -k net_baseline
--a always,exit -F arch=b32 -S connect -k net_baseline
 -a always,exit -F arch=b64 -S accept,accept4 -k net_baseline
--a always,exit -F arch=b32 -S accept,accept4 -k net_baseline
 -a always,exit -F arch=b64 -S sendto,sendmsg,sendmmsg -k net_baseline
--a always,exit -F arch=b32 -S sendto,sendmsg,sendmmsg -k net_baseline
 -a always,exit -F arch=b64 -S recvfrom,recvmsg,recvmmsg -k net_baseline
--a always,exit -F arch=b32 -S recvfrom,recvmsg,recvmmsg -k net_baseline
 
 ## ---------------------------
 ## io_uring Setup (for detecting io_uring usage itself)
@@ -81,8 +81,8 @@
 ## This captures when io_uring is initialized - useful for behavioral detection
 ## Even though we can't see WHAT io_uring does, we CAN see that it was set up
 ##
+## io_uring_setup=425, io_uring_enter=426, io_uring_register=427 (on x86_64)
 -a always,exit -F arch=b64 -S io_uring_setup,io_uring_enter,io_uring_register -k iouring_setup
--a always,exit -F arch=b32 -S io_uring_setup,io_uring_enter,io_uring_register -k iouring_setup
 
 ## ---------------------------
 ## Make config immutable (optional - uncomment for production)
