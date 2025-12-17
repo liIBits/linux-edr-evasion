@@ -1,0 +1,384 @@
+[2025-12-17 00:11:44.991] === CONFIGURATION ===
+[2025-12-17 00:11:45.012] Repo root:   /root/linux-edr-evasion
+[2025-12-17 00:11:45.033] Binary dir:  /root/linux-edr-evasion/bin
+[2025-12-17 00:11:45.055] Iterations:  10
+[2025-12-17 00:11:45.077] CSV output:  /root/linux-edr-evasion/data/processed/runs_20251217_001144.csv
+[2025-12-17 00:11:45.099] Log file:    /root/linux-edr-evasion/logs/test_run_20251217_001144.log
+[2025-12-17 00:11:45.565] Checking audit rules...
+[2025-12-17 00:11:45.599]   Found 15 audit rules matching baseline/iouring keys
+[2025-12-17 00:11:45.619] Wazuh: Checking connectivity to 10.0.0.7...
+[2025-12-17 00:11:47.074]   Wazuh: Connected successfully
+[2025-12-17 00:11:51.278] CSV initialized: /root/linux-edr-evasion/data/processed/runs_20251217_001144.csv
+[2025-12-17 00:11:51.459] Environment snapshot: /root/linux-edr-evasion/data/raw/ENV_20251217_001144.txt
+[2025-12-17 00:11:51.484] Clearing old audit events...
+[2025-12-17 00:11:52.669] === STARTING TEST RUN (10 iterations) ===
+[2025-12-17 00:11:55.569] === ITERATION 1 / 10 ===
+[2025-12-17 00:11:55.615] START: file_io_traditional (iter=1)
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 00:11:56.138]   END: exit=0, duration=1s
+[2025-12-17 00:12:07.902]   -> file=2283 net=1070 exec=126 iouring=0 wazuh=1 ttd=0s
+[2025-12-17 00:12:07.996] START: file_io_uring (iter=1)
+[URING] File I/O complete: [2025-12-17 00:12:08.467]   END: exit=0, duration=1s
+[2025-12-17 00:12:22.301]   -> file=7245 net=1191 exec=154 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:12:22.319] START: read_file_traditional (iter=1)
+[TRAD] Opened /etc/passwd via openat syscall (fd=3)
+[TRAD] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[TRAD] File operation complete - all syscalls traced
+[2025-12-17 00:12:39.468]   END: exit=0, duration=7s
+[2025-12-17 00:13:01.951]   -> file=4280 net=12847 exec=94 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:13:01.994] START: openat_uring (iter=1)
+[URING] Opened /etc/passwd via io_uring (fd=4, NO openat syscall traced)
+[URING] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[URING] File operation complete - NO open/read/close syscalls traced
+[2025-12-17 00:13:02.496]   END: exit=0, duration=1s
+[2025-12-17 00:13:15.121]   -> file=6895 net=1105 exec=124 iouring=12 wazuh=0 ttd=0s
+[2025-12-17 00:13:18.926] START: net_connect_traditional (iter=1)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 00:13:19.495]   END: exit=0, duration=4s
+[2025-12-17 00:13:39.465]   -> file=2830 net=1823 exec=142 iouring=0 wazuh=4 ttd=0s
+[2025-12-17 00:13:39.509] START: net_connect_uring (iter=1)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 00:13:39.976]   END: exit=0, duration=0s
+[2025-12-17 00:13:58.598]   -> file=5605 net=386 exec=130 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:13:58.639] START: exec_cmd_traditional (iter=1)
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=14859, status=0)
+[2025-12-17 00:14:01.986]   END: exit=0, duration=1s
+[2025-12-17 00:14:09.616]   -> file=5110 net=1165 exec=106 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:14:09.639] === ITERATION 1 COMPLETE ===
+[2025-12-17 00:14:09.660] === ITERATION 2 / 10 ===
+[2025-12-17 00:14:09.699] START: file_io_traditional (iter=2)
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 00:14:10.341]   END: exit=0, duration=1s
+[2025-12-17 00:14:18.359]   -> file=2557 net=844 exec=202 iouring=0 wazuh=3 ttd=0s
+[2025-12-17 00:14:18.379] START: file_io_uring (iter=2)
+[URING] File I/O complete: [2025-12-17 00:14:18.833]   END: exit=0, duration=0s
+[2025-12-17 00:14:26.765]   -> file=68 net=268 exec=0 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:14:26.800] START: read_file_traditional (iter=2)
+[TRAD] Opened /etc/passwd via openat syscall (fd=3)
+[TRAD] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[TRAD] File operation complete - all syscalls traced
+[2025-12-17 00:14:27.349]   END: exit=0, duration=1s
+[2025-12-17 00:14:48.561]   -> file=5558 net=493 exec=136 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:14:54.066] START: openat_uring (iter=2)
+[URING] Opened /etc/passwd via io_uring (fd=4, NO openat syscall traced)
+[URING] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[URING] File operation complete - NO open/read/close syscalls traced
+[2025-12-17 00:14:54.521]   END: exit=0, duration=6s
+[2025-12-17 00:15:14.157]   -> file=11483 net=5683 exec=166 iouring=12 wazuh=0 ttd=0s
+[2025-12-17 00:15:14.202] START: net_connect_traditional (iter=2)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 00:15:14.813]   END: exit=0, duration=0s
+[2025-12-17 00:15:22.744]   -> file=6459 net=1012 exec=130 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:15:22.775] START: net_connect_uring (iter=2)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 00:15:25.244]   END: exit=0, duration=3s
+[2025-12-17 00:15:32.777]   -> file=4324 net=889 exec=178 iouring=6 wazuh=4 ttd=0s
+[2025-12-17 00:15:32.818] START: exec_cmd_traditional (iter=2)
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=15246, status=0)
+[2025-12-17 00:15:33.370]   END: exit=0, duration=1s
+[2025-12-17 00:16:11.911]   -> file=7526 net=771 exec=166 iouring=0 wazuh=3 ttd=0s
+[2025-12-17 00:16:11.932] === ITERATION 2 COMPLETE ===
+[2025-12-17 00:16:11.953] === ITERATION 3 / 10 ===
+[2025-12-17 00:16:11.993] START: file_io_traditional (iter=3)
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 00:16:16.231]   END: exit=0, duration=1s
+[2025-12-17 00:16:29.347]   -> file=4146 net=124 exec=130 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:16:29.388] START: file_io_uring (iter=3)
+[URING] File I/O complete: [2025-12-17 00:16:29.862]   END: exit=0, duration=0s
+[2025-12-17 00:16:47.055]   -> file=3552 net=1017 exec=130 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:16:55.953] START: read_file_traditional (iter=3)
+[TRAD] Opened /etc/passwd via openat syscall (fd=3)
+[TRAD] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[TRAD] File operation complete - all syscalls traced
+[2025-12-17 00:16:56.458]   END: exit=0, duration=9s
+[2025-12-17 00:17:12.398]   -> file=9401 net=10762 exec=130 iouring=0 wazuh=1 ttd=0s
+[2025-12-17 00:17:15.279] START: openat_uring (iter=3)
+[URING] Opened /etc/passwd via io_uring (fd=4, NO openat syscall traced)
+[URING] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[URING] File operation complete - NO open/read/close syscalls traced
+[2025-12-17 00:17:15.865]   END: exit=0, duration=3s
+[2025-12-17 00:17:32.084]   -> file=7865 net=1642 exec=136 iouring=12 wazuh=0 ttd=0s
+[2025-12-17 00:17:32.119] START: net_connect_traditional (iter=3)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 00:17:32.701]   END: exit=0, duration=0s
+[2025-12-17 00:17:41.378]   -> file=0 net=503 exec=142 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:17:41.411] START: net_connect_uring (iter=3)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 00:17:41.884]   END: exit=0, duration=0s
+[2025-12-17 00:17:56.164]   -> file=148 net=202 exec=124 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:17:56.200] START: exec_cmd_traditional (iter=3)
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=15624, status=0)
+[2025-12-17 00:18:03.356]   END: exit=0, duration=4s
+[2025-12-17 00:18:16.248]   -> file=5691 net=5662 exec=94 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:18:16.276] === ITERATION 3 COMPLETE ===
+[2025-12-17 00:18:16.306] === ITERATION 4 / 10 ===
+[2025-12-17 00:18:16.369] START: file_io_traditional (iter=4)
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 00:18:17.108]   END: exit=0, duration=1s
+[2025-12-17 00:18:29.256]   -> file=8245 net=1527 exec=154 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:18:29.273] START: file_io_uring (iter=4)
+[URING] File I/O complete: [2025-12-17 00:18:29.720]   END: exit=0, duration=0s
+[2025-12-17 00:18:36.420]   -> file=1454 net=233 exec=130 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:18:36.456] START: read_file_traditional (iter=4)
+[TRAD] Opened /etc/passwd via openat syscall (fd=3)
+[TRAD] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[TRAD] File operation complete - all syscalls traced
+[2025-12-17 00:18:36.935]   END: exit=0, duration=0s
+[2025-12-17 00:18:45.266]   -> file=68 net=133 exec=118 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:18:45.305] START: openat_uring (iter=4)
+[URING] Opened /etc/passwd via io_uring (fd=4, NO openat syscall traced)
+[URING] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[URING] File operation complete - NO open/read/close syscalls traced
+[2025-12-17 00:18:45.796]   END: exit=0, duration=0s
+[2025-12-17 00:19:04.171]   -> file=1284 net=776 exec=142 iouring=12 wazuh=0 ttd=0s
+[2025-12-17 00:19:04.218] START: net_connect_traditional (iter=4)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 00:19:11.173]   END: exit=0, duration=7s
+[2025-12-17 00:19:33.690]   -> file=6425 net=9833 exec=130 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:19:33.727] START: net_connect_uring (iter=4)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 00:19:34.314]   END: exit=0, duration=1s
+[2025-12-17 00:19:44.822]   -> file=2422 net=1203 exec=136 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:19:44.841] START: exec_cmd_traditional (iter=4)
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=16003, status=0)
+[2025-12-17 00:19:47.182]   END: exit=0, duration=3s
+[2025-12-17 00:20:14.480]   -> file=3236 net=1548 exec=160 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:20:14.506] === ITERATION 4 COMPLETE ===
+[2025-12-17 00:20:18.785] === ITERATION 5 / 10 ===
+[2025-12-17 00:20:18.833] START: file_io_traditional (iter=5)
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 00:20:20.462]   END: exit=0, duration=2s
+[2025-12-17 00:20:34.627]   -> file=6962 net=1533 exec=102 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:20:34.667] START: file_io_uring (iter=5)
+[URING] File I/O complete: [2025-12-17 00:20:35.202]   END: exit=0, duration=1s
+[2025-12-17 00:20:44.811]   -> file=8561 net=1085 exec=166 iouring=6 wazuh=16 ttd=0s
+[2025-12-17 00:20:44.842] START: read_file_traditional (iter=5)
+[TRAD] Opened /etc/passwd via openat syscall (fd=3)
+[TRAD] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[TRAD] File operation complete - all syscalls traced
+[2025-12-17 00:20:45.420]   END: exit=0, duration=1s
+[2025-12-17 00:20:55.100]   -> file=1200 net=33 exec=124 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:20:55.139] START: openat_uring (iter=5)
+[URING] Opened /etc/passwd via io_uring (fd=4, NO openat syscall traced)
+[URING] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[URING] File operation complete - NO open/read/close syscalls traced
+[2025-12-17 00:20:55.635]   END: exit=0, duration=0s
+[2025-12-17 00:21:02.676]   -> file=1333 net=578 exec=148 iouring=12 wazuh=0 ttd=0s
+[2025-12-17 00:21:02.714] START: net_connect_traditional (iter=5)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 00:21:07.295]   END: exit=0, duration=5s
+[2025-12-17 00:21:34.801]   -> file=6134 net=4787 exec=166 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:21:34.844] START: net_connect_uring (iter=5)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 00:21:35.472]   END: exit=0, duration=1s
+[2025-12-17 00:21:50.678]   -> file=6750 net=768 exec=154 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:21:50.718] START: exec_cmd_traditional (iter=5)
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=16389, status=0)
+[2025-12-17 00:21:51.244]   END: exit=0, duration=1s
+[2025-12-17 00:21:58.964]   -> file=2048 net=846 exec=160 iouring=0 wazuh=2 ttd=0s
+[2025-12-17 00:21:58.986] === ITERATION 5 COMPLETE ===
+[2025-12-17 00:21:59.012] === ITERATION 6 / 10 ===
+[2025-12-17 00:21:59.051] START: file_io_traditional (iter=6)
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 00:21:59.592]   END: exit=0, duration=0s
+[2025-12-17 00:22:13.753]   -> file=4107 net=132 exec=102 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:22:17.185] START: file_io_uring (iter=6)
+[URING] File I/O complete: [2025-12-17 00:22:17.883]   END: exit=0, duration=0s
+[2025-12-17 00:22:32.315]   -> file=5775 net=916 exec=78 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:22:33.830] START: read_file_traditional (iter=6)
+[TRAD] Opened /etc/passwd via openat syscall (fd=3)
+[TRAD] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[TRAD] File operation complete - all syscalls traced
+[2025-12-17 00:22:34.299]   END: exit=0, duration=1s
+[2025-12-17 00:22:46.676]   -> file=3750 net=248 exec=84 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:22:46.717] START: openat_uring (iter=6)
+[URING] Opened /etc/passwd via io_uring (fd=4, NO openat syscall traced)
+[URING] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[URING] File operation complete - NO open/read/close syscalls traced
+[2025-12-17 00:22:47.172]   END: exit=0, duration=1s
+[2025-12-17 00:22:56.773]   -> file=4388 net=1329 exec=166 iouring=12 wazuh=27 ttd=0s
+[2025-12-17 00:22:56.790] START: net_connect_traditional (iter=6)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 00:22:57.299]   END: exit=0, duration=1s
+[2025-12-17 00:23:07.046]   -> file=156 net=171 exec=142 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:23:07.101] START: net_connect_uring (iter=6)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 00:23:07.604]   END: exit=0, duration=0s
+[2025-12-17 00:23:24.248]   -> file=3300 net=3565 exec=78 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:23:27.150] START: exec_cmd_traditional (iter=6)
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=16767, status=0)
+[2025-12-17 00:23:27.696]   END: exit=0, duration=3s
+[2025-12-17 00:23:40.715]   -> file=8022 net=1924 exec=136 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:23:40.737] === ITERATION 6 COMPLETE ===
+[2025-12-17 00:23:40.759] === ITERATION 7 / 10 ===
+[2025-12-17 00:23:40.797] START: file_io_traditional (iter=7)
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 00:23:41.289]   END: exit=0, duration=1s
+[2025-12-17 00:23:49.479]   -> file=7053 net=710 exec=166 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:23:49.516] START: file_io_uring (iter=7)
+[URING] File I/O complete: [2025-12-17 00:23:50.017]   END: exit=0, duration=1s
+[2025-12-17 00:23:57.482]   -> file=285 net=51 exec=106 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:23:57.515] START: read_file_traditional (iter=7)
+[TRAD] Opened /etc/passwd via openat syscall (fd=3)
+[TRAD] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[TRAD] File operation complete - all syscalls traced
+[2025-12-17 00:24:00.540]   END: exit=0, duration=0s
+[2025-12-17 00:24:11.871]   -> file=5310 net=512 exec=136 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:24:11.910] START: openat_uring (iter=7)
+[URING] Opened /etc/passwd via io_uring (fd=4, NO openat syscall traced)
+[URING] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[URING] File operation complete - NO open/read/close syscalls traced
+[2025-12-17 00:24:12.461]   END: exit=0, duration=1s
+[2025-12-17 00:24:35.891]   -> file=3743 net=2918 exec=106 iouring=12 wazuh=0 ttd=0s
+[2025-12-17 00:24:35.929] START: net_connect_traditional (iter=7)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 00:24:36.576]   END: exit=0, duration=1s
+[2025-12-17 00:24:46.784]   -> file=4839 net=1642 exec=142 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:24:46.812] START: net_connect_uring (iter=7)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 00:24:47.316]   END: exit=0, duration=1s
+[2025-12-17 00:24:54.917]   -> file=1531 net=731 exec=148 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:24:54.949] START: exec_cmd_traditional (iter=7)
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=17146, status=0)
+[2025-12-17 00:24:55.418]   END: exit=0, duration=1s
+[2025-12-17 00:25:04.256]   -> file=8468 net=858 exec=172 iouring=0 wazuh=2 ttd=0s
+[2025-12-17 00:25:04.266] === ITERATION 7 COMPLETE ===
+[2025-12-17 00:25:04.278] === ITERATION 8 / 10 ===
+[2025-12-17 00:25:04.297] START: file_io_traditional (iter=8)
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 00:25:04.767]   END: exit=0, duration=0s
+[2025-12-17 00:25:22.092]   -> file=489 net=45 exec=142 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:25:22.145] START: file_io_uring (iter=8)
+[URING] File I/O complete: [2025-12-17 00:25:25.638]   END: exit=0, duration=3s
+[2025-12-17 00:25:48.451]   -> file=8137 net=5085 exec=118 iouring=6 wazuh=3 ttd=0s
+[2025-12-17 00:25:48.495] START: read_file_traditional (iter=8)
+[TRAD] Opened /etc/passwd via openat syscall (fd=3)
+[TRAD] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[TRAD] File operation complete - all syscalls traced
+[2025-12-17 00:25:49.096]   END: exit=0, duration=1s
+[2025-12-17 00:25:57.127]   -> file=408 net=790 exec=148 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:25:57.165] START: openat_uring (iter=8)
+[URING] Opened /etc/passwd via io_uring (fd=4, NO openat syscall traced)
+[URING] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[URING] File operation complete - NO open/read/close syscalls traced
+[2025-12-17 00:25:57.703]   END: exit=0, duration=0s
+[2025-12-17 00:26:05.528]   -> file=666 net=555 exec=148 iouring=12 wazuh=0 ttd=0s
+[2025-12-17 00:26:05.569] START: net_connect_traditional (iter=8)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 00:26:06.052]   END: exit=0, duration=1s
+[2025-12-17 00:26:15.848]   -> file=1542 net=62 exec=102 iouring=0 wazuh=3 ttd=0s
+[2025-12-17 00:26:15.874] START: net_connect_uring (iter=8)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 00:26:16.313]   END: exit=0, duration=1s
+[2025-12-17 00:26:53.058]   -> file=4824 net=1347 exec=124 iouring=6 wazuh=1 ttd=0s
+[2025-12-17 00:26:53.105] START: exec_cmd_traditional (iter=8)
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=17525, status=0)
+[2025-12-17 00:26:53.607]   END: exit=0, duration=0s
+[2025-12-17 00:27:04.863]   -> file=4790 net=658 exec=124 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:27:04.884] === ITERATION 8 COMPLETE ===
+[2025-12-17 00:27:04.907] === ITERATION 9 / 10 ===
+[2025-12-17 00:27:04.944] START: file_io_traditional (iter=9)
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 00:27:07.461]   END: exit=0, duration=3s
+[2025-12-17 00:27:20.071]   -> file=5001 net=945 exec=202 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:27:20.111] START: file_io_uring (iter=9)
+[URING] File I/O complete: [2025-12-17 00:27:20.672]   END: exit=0, duration=0s
+[2025-12-17 00:27:37.662]   -> file=4917 net=0 exec=130 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:27:37.702] START: read_file_traditional (iter=9)
+[TRAD] Opened /etc/passwd via openat syscall (fd=3)
+[TRAD] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[TRAD] File operation complete - all syscalls traced
+[2025-12-17 00:27:38.384]   END: exit=0, duration=1s
+[2025-12-17 00:27:52.186]   -> file=5619 net=497 exec=130 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:27:52.222] START: openat_uring (iter=9)
+[URING] Opened /etc/passwd via io_uring (fd=4, NO openat syscall traced)
+[URING] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[URING] File operation complete - NO open/read/close syscalls traced
+[2025-12-17 00:27:52.705]   END: exit=0, duration=0s
+[2025-12-17 00:28:00.347]   -> file=4788 net=319 exec=124 iouring=12 wazuh=0 ttd=0s
+[2025-12-17 00:28:00.870] START: net_connect_traditional (iter=9)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 00:28:01.442]   END: exit=0, duration=1s
+[2025-12-17 00:28:09.146]   -> file=7202 net=813 exec=142 iouring=0 wazuh=5 ttd=0s
+[2025-12-17 00:28:09.185] START: net_connect_uring (iter=9)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 00:28:12.572]   END: exit=0, duration=3s
+[2025-12-17 00:28:18.943]   -> file=2856 net=93 exec=154 iouring=6 wazuh=3 ttd=0s
+[2025-12-17 00:28:18.982] START: exec_cmd_traditional (iter=9)
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=17911, status=0)
+[2025-12-17 00:28:19.537]   END: exit=0, duration=1s
+[2025-12-17 00:28:32.172]   -> file=5577 net=542 exec=166 iouring=0 wazuh=5 ttd=0s
+[2025-12-17 00:28:32.203] === ITERATION 9 COMPLETE ===
+[2025-12-17 00:28:32.232] === ITERATION 10 / 10 ===
+[2025-12-17 00:28:32.276] START: file_io_traditional (iter=10)
+[TRAD] File I/O complete: EDR test payload - traditional syscall
+[2025-12-17 00:28:41.232]   END: exit=0, duration=9s
+[2025-12-17 00:29:03.952]   -> file=7741 net=16369 exec=148 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:29:03.994] START: file_io_uring (iter=10)
+[URING] File I/O complete: [2025-12-17 00:29:08.713]   END: exit=0, duration=5s
+[2025-12-17 00:29:23.663]   -> file=6524 net=2753 exec=166 iouring=6 wazuh=1 ttd=0s
+[2025-12-17 00:29:23.714] START: read_file_traditional (iter=10)
+[TRAD] Opened /etc/passwd via openat syscall (fd=3)
+[TRAD] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[TRAD] File operation complete - all syscalls traced
+[2025-12-17 00:29:26.002]   END: exit=0, duration=2s
+[2025-12-17 00:29:39.318]   -> file=5639 net=1046 exec=136 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:29:39.353] START: openat_uring (iter=10)
+[URING] Opened /etc/passwd via io_uring (fd=4, NO openat syscall traced)
+[URING] Read 255 bytes (first line): root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/bin:/sbin/nologin...
+[URING] File operation complete - NO open/read/close syscalls traced
+[2025-12-17 00:29:42.840]   END: exit=0, duration=3s
+[2025-12-17 00:29:56.214]   -> file=3553 net=6181 exec=118 iouring=12 wazuh=0 ttd=0s
+[2025-12-17 00:29:57.799] START: net_connect_traditional (iter=10)
+[TRAD] connect() to 127.0.0.1:8080 - Connection refused (syscall was traced)
+[2025-12-17 00:29:58.289]   END: exit=0, duration=2s
+[2025-12-17 00:30:08.569]   -> file=450 net=664 exec=142 iouring=0 wazuh=27 ttd=0s
+[2025-12-17 00:30:08.617] START: net_connect_uring (iter=10)
+[URING] connect() to 127.0.0.1:8080 - Connection refused (via io_uring, NOT traced as syscall)
+[2025-12-17 00:30:12.157]   END: exit=0, duration=1s
+[2025-12-17 00:30:17.782]   -> file=6831 net=1331 exec=130 iouring=6 wazuh=0 ttd=0s
+[2025-12-17 00:30:17.816] START: exec_cmd_traditional (iter=10)
+uid=0(root) gid=0(root) groups=0(root) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+[TRAD] Executed /usr/bin/id via fork+execve (pid=18289, status=0)
+[2025-12-17 00:30:18.347]   END: exit=0, duration=1s
+[2025-12-17 00:30:27.647]   -> file=6156 net=476 exec=160 iouring=0 wazuh=0 ttd=0s
+[2025-12-17 00:30:27.673] === ITERATION 10 COMPLETE ===
+[2025-12-17 00:30:27.697] ==============================================
+[2025-12-17 00:30:27.718]   TEST RUN COMPLETE
+[2025-12-17 00:30:27.742] ==============================================
+[2025-12-17 00:30:27.776] Total iterations: 10
+[2025-12-17 00:30:27.799] CSV data rows:    70 (expected: 70)
+[2025-12-17 00:30:28.563] 
+[2025-12-17 00:30:28.585] Output files:
+[2025-12-17 00:30:28.607]   CSV:  /root/linux-edr-evasion/data/processed/runs_20251217_001144.csv
+[2025-12-17 00:30:28.628]   Log:  /root/linux-edr-evasion/logs/test_run_20251217_001144.log
+[2025-12-17 00:30:28.650]   Env:  /root/linux-edr-evasion/data/raw/ENV_20251217_001144.txt
