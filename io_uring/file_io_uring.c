@@ -7,7 +7,8 @@
  * buffer rather than individual syscalls.
  *
  * Compile: gcc -o file_io_uring file_io_uring.c -luring
- * Usage:   ./file_io_uring
+ * Usage:   ./file_io_uring [filepath]
+ * Default: /tmp/edr_test_uring.txt
  * 
  * Requires: liburing-dev, kernel >= 5.1
  */
@@ -20,11 +21,14 @@
 #include <stdlib.h>
 #include <liburing.h>
 
-#define TEST_FILE "/tmp/edr_test_uring.txt"
+#define DEFAULT_FILE "/tmp/edr_test_uring.txt"
 #define BUFFER_SIZE 64
 #define QUEUE_DEPTH 4
 
-int main(void) {
+int main(int argc, char *argv[]) {
+    /* Accept filepath as argument for unique file tagging */
+    const char *filepath = (argc > 1) ? argv[1] : DEFAULT_FILE;
+    
     struct io_uring ring;
     struct io_uring_sqe *sqe;
     struct io_uring_cqe *cqe;
@@ -40,10 +44,10 @@ int main(void) {
     }
 
     /* Open file using traditional syscall (required for fd) */
-    fd = open(TEST_FILE, O_CREAT | O_RDWR | O_TRUNC | O_DIRECT, 0644);
+    fd = open(filepath, O_CREAT | O_RDWR | O_TRUNC | O_DIRECT, 0644);
     if (fd < 0) {
         /* Fallback without O_DIRECT for filesystems that don't support it */
-        fd = open(TEST_FILE, O_CREAT | O_RDWR | O_TRUNC, 0644);
+        fd = open(filepath, O_CREAT | O_RDWR | O_TRUNC, 0644);
         if (fd < 0) {
             perror("open");
             io_uring_queue_exit(&ring);
@@ -61,7 +65,7 @@ int main(void) {
         return 1;
     }
 
-    /* Prepare write operation - NO syscall traced here */
+    /* Prepare write operation - NO write() syscall traced here */
     io_uring_prep_write(sqe, fd, data, strlen(data), 0);
     sqe->user_data = 1; /* Tag for identification */
 
@@ -93,7 +97,7 @@ int main(void) {
         return 1;
     }
 
-    /* Prepare read operation - NO syscall traced here */
+    /* Prepare read operation - NO read() syscall traced here */
     io_uring_prep_read(sqe, fd, buf, BUFFER_SIZE - 1, 0);
     sqe->user_data = 2;
 
@@ -116,9 +120,9 @@ int main(void) {
 
     /* Cleanup */
     close(fd);
-    unlink(TEST_FILE);
+    unlink(filepath);
     io_uring_queue_exit(&ring);
 
-    printf("[URING] File I/O complete: %s", buf);
+    printf("[URING] File I/O complete on %s: %s", filepath, buf);
     return 0;
 }

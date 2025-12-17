@@ -27,6 +27,7 @@
 #define QUEUE_DEPTH  4
 
 int main(int argc, char *argv[]) {
+    /* Accept filepath as argument for unique file tagging */
     const char *filepath = (argc > 1) ? argv[1] : DEFAULT_FILE;
     
     struct io_uring ring;
