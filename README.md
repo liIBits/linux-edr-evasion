@@ -139,6 +139,9 @@ sudo dnf install -y gcc make audit liburing liburing-devel
 
 # Python for analysis (optional, can run on separate machine)
 sudo dnf install -y python3 python3-pip
+
+# Install for analysis
+pip install -r requirements.txt
 ```
 
 **Install Wazuh Agent on Rocky Linux target:**
